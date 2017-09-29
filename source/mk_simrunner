@@ -1,0 +1,28 @@
+objects = moult_treat.o moult_funs.o moult_sim.o rand.o
+mode = -g  -ffloat-store
+#macro = -DUNDRAW
+compiler = gcc
+
+
+simrunner	 : $(objects)
+	$(compiler) $(mode) -o simrunner $(objects) -lm
+	if [ -d ../build ]; then \
+	   mv simrunner ../build ; \
+	else \
+	     mv simrunner .. ;\
+	fi
+	rm -f $(objects)
+
+moult_treat.o : moult_treat.c moult.h 
+	$(compiler) $(mode) -c moult_treat.c 
+moult_funs.o : moult_funs.c moult.h 
+	$(compiler) $(mode) -c moult_funs.c 
+moult_sim.o : moult_sim.c moult.h 
+	$(compiler) $(mode) -c moult_sim.c 
+rand.o : rand.c
+	$(compiler) $(mode) -c rand.c 
+
+
+.PHONY : clean
+clean :
+	-rm $(objects)

@@ -1,0 +1,2162 @@
+% -*- mode: noweb; noweb-default-code-mode: R-mode; -*-
+
+\documentclass[12pt, a4paper]{article}
+
+\usepackage{../../../lib/texinputs/ms}
+\usepackage{amsmath}
+\usepackage{psfrag}
+\usepackage{graphicx}
+%\usepackage{epstopdf}
+\usepackage{longtable}
+\usepackage{natbib}
+\usepackage{type1cm}
+%\usepackage{Sweave}
+
+\DeclareMathOperator{\chop}{chop}
+\DeclareMathOperator{\cf}{C}
+\DeclareMathOperator{\gammaf}{\gamma}
+\DeclareMathOperator{\gf}{g}
+\DeclareMathOperator{\Gf}{G}
+\DeclareMathOperator{\Mf}{M}
+\DeclareMathOperator{\mf}{m}
+\DeclareMathOperator{\ff}{V}
+\DeclareMathOperator{\Wf}{E}
+\DeclareMathOperator{\Uf}{U}
+\DeclareMathOperator{\Af}{A}
+\DeclareMathOperator{\df}{d}
+
+\newcommand{\rout}[1]{`\texttt{#1}'}
+\newcommand{\Fo}{\ensuremath{\,_{\mbox{\small o}}F}}
+\newcommand{\Fi}{\ensuremath{\,_{\mbox{\small i}}F}}
+\newcommand{\Fj}[1]{\ensuremath{\,_{#1}F}}
+\newcommand{\Expect}[1]{\ensuremath{\mathsf{E}\left\{#1\right\}}}
+
+%\renewcommand{\co}[3][]{\margo{#1}#3}
+
+\title{Annual routines of non-migratory birds: optimal moult strategies}
+
+\begin{document}
+
+\bibliographystyle{/home/mazb/lib/texinputs/AmNat}
+
+\SweaveOpts{echo=FALSE,eval=TRUE,results=hide,term=FALSE,debug=TRUE}
+
+%\maketitle
+
+
+\begin{center}
+  \Huge Annual routines of non-migratory birds: optimal moult
+  strategies
+\end{center}
+
+\vspace{0.75in}
+
+\begin{center}
+  \Large Zolt\'an Barta$^{1,2}$, Alasdair I. Houston$^3$, John
+  M. McNamara$^1$, Robert K. Welham$^1$, Anders Hedenstr\"om$^4$, 
+  Thomas P. Weber$^5$ and Orsolya Fer\'o$^2$
+  
+\end{center}
+
+% \begin{center}
+%   \large  Version 2.1, \today
+% \end{center}
+
+\vspace{0.75in}
+
+\begin{description}
+\item[$^1$:] Centre for Behavioural Biology, Department of Mathematics,
+  University of Bristol, University Walk, Bristol, BS8 1TW, UK
+\item[$^2$:] Behavioural Ecology Research Group,
+  Department of Evolutionary Zoology, University of Debrecen,
+  Debrecen, 4010, Hungary
+\item[$^3$:] Centre for Behavioural Biology, School of Biological Sciences,
+  University of Bristol, Woodland Road, Bristol, BS8 1UG, UK
+\item[$^4$:] Department of Theoretical Ecology, Lund University,
+  Lund, Sweden
+\item[$^5$:] Animal Ecology, Department of Ecology, Lund University,
+  Lund, Sweden
+\end{description}
+
+\vspace{0.75in}
+
+\noindent Correspondence: Z. Barta, Behavioural Ecology Research
+Group, Department of Evolutionary Zoology, University of Debrecen,
+Debrecen, 4010, Hungary. e-mail: zbarta@delfin.unideb.hu.\\[3ex]
+
+\noindent Running head: Optimal moult strategies 
+
+
+\newpage
+
+
+\section*{Summary}
+\label{sec:abstract}
+
+In a periodically changing environment it is important for animals to
+\co[T]{}{properly} time the major events of their life in order to
+maximise their lifetime fitness. For a non-migratory bird the timing
+of breeding and moult are thought to be the most crucial.  We develop
+a state-dependent optimal annual routine model that incorporates
+explicit density dependence in the food supply.  In the model the
+birds' decisions depend on the time of year, their energy reserves,
+breeding status, experience, and the quality of two types of feathers
+(outer and inner primaries).  Our model predicts that, under a
+seasonal environment, feathers with large effects on flight ability,
+higher abrasion rate and lower energetic cost of moult should be
+moulted closer to the winter (i.e.\ later) than those with the
+opposite attributes.  Therefore, we argue that the sequence of moult
+may be an adaptive response to the problem of optimal timing of moult
+of differing feathers within the same feather tract. The model also
+predicts that environmental seasonality greatly affects optimal annual
+routines.  Under high seasonality birds breed first then immediately
+moult, whereas under low seasonality an alternation occurs between
+breeding and moulting some of the feathers in one year and having a
+complete moult but no breeding in the other year. Increasing food
+abundance has a similar effect.
+
+
+
+
+\newpage
+
+<<label=load-lib>>=
+library(Rmoult,lib.loc="~/lib/R/library");
+@
+
+<<label=baseline-values>>=
+if(file.exists("bl.Rdata")) {
+  load("bl.Rdata")
+} else {
+  inik.val <- scan(file="~/Projects/moult/runs/baseline/baseline.ini",
+                   what=list(variable=character(0),value=numeric(0)));
+  i.v <- inik.val$value;
+  names(i.v) <- inik.val$variable;
+  save(i.v,file="bl.Rdata")
+}
+p.tran <- function(x) {
+  r <- paste(x[-length(x)]," & ",collapse=" ");
+  r <- paste(r,x[length(x)]);
+  r;
+}
+
+@ 
+
+
+
+\section{Introduction}
+
+In an environment that changes periodically over the year the timing
+of the major events in an organism's life can have large effects on
+the organism's survival and reproduction, and we would expect natural
+selection to shape the order and timing of these behaviours to
+maximise fitness \citep{mcnamara98:migra, houston99:model}.  Proper
+timing is important for a number of reasons.  First, the benefits from
+these events can vary significantly over the year \citep[e.g.\ the
+survival and subsequent reproduction of young may depend on the time
+in the season at which they are born,][]{lack68,guiness78:deer,
+daan89:food,green93:bison, verboven98:season, szekely99:value,
+cote01:birth}.  Second, performing an action at a given time may
+significantly influence the animal's future state which in turn may
+influence its available actions in the future. For example, when an
+animal migrates, it changes both its location and its energy
+reserves. In turn these changes influence whether the animal can breed
+and if it breeds how successful the attempt may be. Third, the
+performance of one activity may exclude the performance of others
+(e.g.\ most species cannot breed during migration).  In this later
+case the optimal time to perform a given activity will not only depend
+on the best time for this action but also on whether there are other
+good times to perform the excluded activities
+\citep{foster75:overlap,houston99:model}.  A general technique for
+finding optimal annual routines is presented by
+\citet{houston99:model} and is used in the context of migration by
+\citet{mcnamara98:migra}, and used to investigate the effects of the
+background mortality rate on annual routines in
+\citet{mcnamar03:entrail}. The technique can be used to analyse a wide
+range of issues. In this paper we concentrate on the timing of
+reproduction and moult in non migratory species of bird. Although our
+detailed results are specific to this case the underlying trade-offs
+are likely to occur in other contexts. 
+
+For a non-migratory bird the timing of breeding and moult are thought
+to be the most crucial \citep{immelmann71:periodic}. Breeding is
+significant because of its obvious impact on the bird's reproductive
+success and because of its well documented costs in terms of energetic
+expenditure and survival
+\citep[e.g.][]{gustafsson88:repr_costs,nilsson96:cost}.  Moult (the
+process in which birds renew their plumage regularly) is important
+because it restores the state of the otherwise continuously
+deteriorating feathers.  Reduced feather quality reduces flight
+ability and hence increases flight metabolism and may reduce a bird's
+ability to escape from predators.  Consequently, moulting has
+advantages in terms of future performance.  However, it also has
+immediate costs.  During moult, flight performance may be severely
+affected (\citealt{haukioja71:flighlessness, swaddle96:plumag,
+chai97:hummi, swaddle97:effec, henders99:aerod}; but see
+\citealt{lind01:tree_sparr_moult}), and regrowth of the feathers
+requires energy and protein \citep{king80:moult_energ,
+klaassen95:moult, murphy96:energ}.
+
+The organisation of annual routines is basically the same for most
+non-migratory temperate zone birds; a breeding season is followed by a
+complete moult (post-nuptial moult) with relatively rare
+moult-breeding overlap \citep[e.g.][]{ginn83:moult,jenni94:moult}.
+The annual routines of the tropical species are much more variable.
+In addition to the most common post-nuptial moult there is also
+prenuptial moult \citep{Brooke85:toc-toc}, moulting while breeding
+\citep{Craig83:starlings, FranklinSQM99:helmeted}, a complete moult
+surrounded by a biannual breeding season \citep{Wilkinson83:biannual}
+or a complete moult following each of the two breeding periods
+\citep{miller61:molt_andean}.  Tropical birds also tend to have
+smaller clutches and live longer than temperate zone ones
+\citep{lack47:clutchsize, ricklefs80:geogr, murray85:clutch_size,
+  martin96:trop_diff, stutchbury01:tropic_birds}. Considerable
+variability exists, furthermore, in the detailed structure of annual
+schedules of different populations and species both in the temperate
+zone and in the tropics. For instance, the start of both breeding and
+moult, the number of broods, the length of a breeding attempt, and the
+length and intensity of moult can all vary among individuals, sexes,
+populations or species \citep[e.g.][]{davis71:peru_moult,
+  stiles74:circannual, ginn83:moult, thompson88:quelea, jenni94:moult,
+  FranklinSQM99:helmeted, hemborg01:long_term}.  It is, however,
+largely still unclear what ecological, evolutionary or life history
+factors are responsible for the evolution and maintenance of between
+species variability \citep{svensson99:phylo}.  Furthermore, even less
+is known about both the occurrence and the causes of individual
+variation of annual routines within a species \citep{hemborg98:sexua}.
+
+%% Tropical birds also
+%% differ from temperate zone ones in many other respects e.g.\ they
+%% usually have smaller clutches and live longer
+%% \citep{lack68,ricklefs69:trop_temp,skutch49:tropic,stutchbury01:tropic_birds}.
+%% Two major hypotheses try to explain the reasons for these life history
+%% differences \citep{murray85:clutch_size,martin96:trop_diff}.  The food
+%% limitation hypothesis states that birds have small clutches in the
+%% tropics because the small variation in the food supply allow limited
+%% surplus for reproduction during the tropical summer
+%% \citep{lack68,lack47:clutchsize,ricklefs80:geogr,ashmole63:hyp}. The
+%% adult survival hypothesis argues that low seasonality in the tropics
+%% leads to high adult survival which in turn selects for low
+%% reproductive effort \citep{murray85:clutch_size}. It is still unclear
+%% which of these hypotheses is more adequate \citep{martin96:trop_diff}.
+
+The sequence of primary moult within a feather tract (in which the
+main flight feathers on the wings are replaced) is much less variable
+than its timing, speed etc. Most species of birds follow the so called
+basic sequence of moult (or descendant primary moult) in which the
+innermost primaries are dropped first and then primaries are replaced
+in an outward direction \citep{jenni94:moult}. Apart from a hypothesis
+which suggests that descendant replacement is the easiest way to
+reduce the effect of lift forces on a growing primary during flight
+\citep{noordhuis89:moult_seq}, the reason for this pattern has not
+been considered.
+
+Here we present a detailed model to improve our understanding of the
+timing of reproduction and the timing and sequence of moult in
+non-migratory birds. Using the approach of \citet{houston99:model}
+allows us to relax most of the restrictions imposed by previous
+modellers (e.g.\ \citealt{holmgren95:sched}).  For instance, we allow
+flexibility in both the time of breeding and the number of broods
+(including the option not to breed at all), and we allow activity to
+influence the state of the feathers. Furthermore, we use explicit
+density dependence which makes it possible to more accurately
+investigate how factors such as the food supply influence annual
+schedules. We also include two different feather types in our model to
+give a more detailed account of moult.  For instance,
+we can model aspects of the speed and sequence of moult.
+
+We use our model to investigate how individual characteristics (e.g.\
+quality of feathers, breeding status and energy reserves) influence
+the annual routines of birds.  Furthermore, by introducing different
+kinds of asymmetry between the two types of feathers we explore
+factors influencing the sequence of moult. We also investigate the
+effects of environmental factors (seasonal variation, abundance of
+food and background mortality) on the organisation of annual routines
+(e.g.\ the timing and order of moult) in non-migratory birds. We place
+great emphasis on the comparison of highly seasonal, less seasonal and
+aseasonal environments in order to explain why annual routines are
+more variable in the tropics.
+
+
+
+\section{The model}
+
+We consider the behaviour of a female bird and all her female
+descendants over a period of many years. Each year is divided into $T=52$
+weeks, where week $0$ is the middle of the winter. At the start of
+each week (i.e.\ at times $t=0, 1, \dots, T-1$), the bird has
+available four classes of behavioural actions relating to (i) moult of
+the outer primaries, (ii) moult of the inner primaries, (iii) foraging
+intensity, and (iv) reproductive behaviour. It simultaneously performs
+one action from each class. The performance of an action in one class
+does not constrain the action performed in another class. The action
+taken by the bird can depend on the time of the year and its state
+which is represented by five state variables: quality of its feathers
+(outer and inner primaries, \Fo\ and \Fi), experience $e$, age of the
+brood $a$ and energy reserves $r$. The action taken influences the
+bird's future state.
+
+
+\subsection{Feathers and moult}
+\label{sec:feathers-moult}
+
+We have chosen to model the moult of a bird's primary feathers
+rather than other feather groups for two reasons. First, primary
+moult extends over virtually the entire moult period and is usually
+taken as a reference for the process of moult in the other feather
+tracts \citep{jenni94:moult}. Hence, the moult of primaries is well
+studied and so the timing and sequence of primary moult is better
+known than those of other feather tracts. Second, primaries are
+considered to be the feathers that have the strongest effect on flight
+ability \citep{jenni94:moult}. 
+
+Instead of constructing a detailed model of individual feathers, we
+clump the primaries into two groups, the inner and outer primaries.
+This enables us to make predictions about the sequence in which the
+primaries are moulted and the speed of moult (measured by the extent
+of the overlap between the moult of the two groups).  In some members
+of at least five groups of birds (albatrosses, parrots, owls,
+kingfishers and falcons) a group of inner primaries is moulted
+separately from the outer primaries \citep{filardi01:life}. Our model
+is able to make predictions about when this pattern of moult should
+occur.
+
+Both feather quality variables (\Fo\ and \Fi) can vary between $0$
+(very poor condition) and $1$ (newly moulted feathers).  Computations
+are based on the assumption that feather wear is proportional to
+foraging intensity, but we later comment on the robustness of
+conclusions to this assumption.  Decreasing feather quality decreases
+flight ability (see Appendix~\ref{sec:feather-dynamic},
+eq.~\eqref{eq:flight_eff}) and so increases predation risk and energy
+expenditure (see equations~\eqref{eq:mortality} and \eqref{eq:U}).
+
+Starting moult of feather type $j$ results in an instantaneous change
+in the feathers' state at the beginning of the week to $\Fj{j}_{t} =
+-\,_{j}m_{length}$.  The state of feathers then tends to increase
+stochastically (Appendix~\ref{sec:feather-dynamic},
+eq.~\eqref{eq:moulting}) until $\Fj{j}_{t} = -1$ when the bird will
+deterministically have completely new feathers at the start of the
+next week, i.e.\ $\Fj{j}_{t+1} = 1$. Since feathers are renewing
+gradually during moult we assume that the flight ability of a moulting
+bird increases as moult progresses
+(Appendix~\ref{sec:feather-dynamic}, eq.~\eqref{eq:dj}).  Moulting
+flight feathers, however, decreases the bird's energy reserves because
+of the energy used for the synthesis of new feathers
+\citep[Appendix~\ref{App:energy}, equations~\eqref{eq:c_delay} and
+\eqref{eq:delta_m}, ][]%
+{lustick70:energ,lindstroem93:energ}.
+
+
+
+\subsection{Energy intake}
+\label{sec:energy-intake}
+
+The exact amount of food available in week $t$, $\gf(t)$, depends on
+the environmental food supply and the competition between birds for
+this food (see Appendix~\ref{sec:food-exper-reserv} for details).  The
+environmental food supply, $\Gf(t)$, varies sinusoidally over the
+year. Its yearly average is given by $A_{food}$ while its maximal
+deviation from the average is denoted by $\epsilon$. The food supply
+has a maximum ($A_{food} + \epsilon$) at midsummer and a minimum
+($A_{food} - \epsilon$) at midwinter. We assume that $A_{food}$ and
+$\epsilon$ are the same for all years.  At the beginning of each week
+the bird adopts a foraging intensity, $u$ ($0 \le u \le 1$), and
+forages with this intensity throughout that week. We assume that the
+gross energy intake is proportional to foraging intensity.  Because it
+is reasonable to assume that newly fledged birds forage with lower
+efficiency than adults we introduce the state variable experience,
+$e$.  The newly fledged birds are all inexperienced ($e=0$) and
+experience tends to increase after fledging until full maturation
+($e=e_{max}$, details in Appendix~\ref{sec:food-exper-reserv}).
+
+The bird's energy intake, $\gamma$, depends on its foraging intensity,
+the availability of food, and the bird's experience as follows
+\begin{equation}
+\gammaf(u,e,t) = u \gf(t) \theta^{e_{max}-e},
+\end{equation}
+where $\theta < 1$.
+
+\subsection{Reproduction}
+\label{sec:reproduction}
+
+For simplicity, we assume uniparental care. A non-caring
+bird can either immediately start a new brood (hereafter
+labelled as `start') or alternatively `subsist'.  If the bird starts a
+new brood, the bird's reserves are decreased by an amount of energy
+$\Delta_s$. 
+
+If the bird has a brood younger than the maximum brood age ($a_{max}$)
+it can either continue to care for it and so retain the brood (`care')
+or desert it (`desert').  If a bird deserts, its brood dies and the
+bird will have no brood during the next week.  If the parent bird dies
+between $t$ and $t+1$ or is unable to achieve a gross energetic intake
+$\gamma_{brood}$ during this period then all brood members starve to
+death. In order to get gross intake $\gamma_{brood}$, the bird must
+forage with intensity at least equal to $u_{crit}(e,t)$ where
+$\gammaf(u_{crit},e,t) = \gamma_{brood}$.  Thus if $u_{crit}(e,t)>1$
+the bird is forced to desert the brood since brood members will starve
+even if the mother forages with maximum intensity, $u=1$. If
+$u_{crit}(e,t)<1$ and the parent bird forages with intensity $u$,
+where $u_{crit}(e,t)\le u \le 1$, then the nestlings survive and the
+parent bird receives a gross energy intake of $\gammaf(u,e,t) -
+\gamma_{brood}$.
+
+If the brood reaches the maximum brood age ($a_{max}$) the bird
+abandons the brood (`abandon') and the nestlings become independent.
+We assume that their reserves are $r=0.5$ and their feathers are in
+top quality, $\Fj{j} = 1$, ($j = \mbox{o},\mbox{i}$). A bird who
+deserts or abandons its brood during week $t$ cannot start a new brood
+before week $t+1$.  For simplicity, and because we are mainly
+interested in moult, we do not optimise over brood size. Instead the
+number of female young at abandonment $n_{brood}$ is a parameter of
+our model. Note, however, that the modelled birds still can control
+their reproductive effort per year by varying their number of breeding
+attempts.
+
+
+\subsection{Energy reserves}
+
+The bird's energy reserves, $r$, vary between $r=0$ and the bird's
+maximal storage capacity $r=1$. We do not consider stochasticity in
+the food supply and stochasticity in metabolic expenditure separately,
+but instead combine chance events into an overall stochasticity in the
+change in reserves over a week.  First, we consider the cases where
+the bird does not have a brood.  If the bird subsists and forages with
+intensity $u$ during week $t$ its reserves at the start of the next
+week $t+1$ are then given by the random variable $r_{subsist}$, where
+\begin{equation}
+  r_{subsist} = r+\gammaf(u,e,t) - C_{subsist} + R.
+  \label{eq:rdelay}
+\end{equation}
+Here $R$ is a random variable with zero mean. The distribution of this
+random variable is specified in Appendix \ref{sec:notations}.
+$C_{subsist}$ is the energetic expenditure of a subsisting bird. This
+expenditure depends on the bird's reserves, its foraging intensity and
+the quality of its feathers (for details see
+Appendix~\ref{App:energy}). The effect of starting a new brood can be
+described in a similar way:
+\begin{equation}
+  r_{start} = r+\gammaf(u,e,t)-C_{subsist} - \Delta_s + R.
+  \label{eq:rstart}
+\end{equation}
+Now suppose that the bird has a brood and continues to care for it.
+Then it must forage with intensity $u$, $u_{crit}(e,t) \le u \le 1$,
+in order to ensure the survival of its nestlings. Its reserves will
+then be
+\begin{equation}
+  r_{care} = r+\gammaf(u,e,t)-\gamma_{brood}- C_{subsist} + R. 
+\label{eq:rcare}
+\end{equation}
+
+
+\subsection{Sources of mortality}
+\label{sec:source-mortality}
+
+The bird can die because of starvation or predation.  Starvation
+occurs when $r=0$. We assume that predation risk is an accelerating
+function of foraging intensity (the higher the intensity, the less
+probable is the bird to detect an approaching predator), and body
+reserves \citep[the more reserves it carries, the less likely it can
+escape from an attack;][]{witter93:fat_costs,cuthill97:time_energy}.
+Predation risk decreases with flight efficiency $\Wf(\Fo,\Fi)$; the
+more impaired the bird's flight is, the less likely it can escape from
+an attack; see equations (\ref{eq:flight_eff}) and (\ref{eq:dj})
+\citep{hedenstroem92:fligh,slagsvold96:disap,lind99:reduc}.  The birds
+also suffer from a background mortality, $M_b$, which is independent
+of behaviour.  Overall the probability of mortality per week which is
+unrelated to starvation is given by
+\begin{equation}
+\Mf(u,r,\Fo,\Fi) = M_b + \frac{M_f u^2 (1+0.1r^2)}{\Wf(\Fo,\Fi)},
+\label{eq:mortality}
+\end{equation}
+where $M_f$ is a parameter that scales the reserve-dependent predation
+hazard. Mortality acts during the week. Thus if a bird dies between
+$t$ and $t+1$, then any young that became independent at $t$ are not
+affected, but any young that are still dependent at $t$ die along with
+the parent bird.
+
+
+\subsection{Determination of the optimal strategy}
+
+The best strategy to adopt depends on the food availability $\gf(t)$.
+This strategy does not maximise the lifetime number of young produced
+by a bird. This is because young produced at some times of year are
+more likely to survive, and hence have greater reproductive value,
+than young produced at other times of year.  Instead fitness is
+maximised by maximising the long-term rate of growth of descendant
+numbers \citep{metz92:fitness}, and can be found by dynamic
+programming \citep{mcnamara91:perron,houston99:model}. Details are
+given in Appendix~\ref{sec:dynam-progr-equat}.
+
+Conversely, because there is density dependence, the strategy adopted
+by population members determines the food availability. To calculate
+$g$ from the strategy we follow the population forward in time,
+starting with an initial specification of numbers of individuals in
+each state. Given such a population distribution at the start of week
+$t$, a measure of competition for food is determined
+(Appendix~\ref{sec:food-exper-reserv}). This then determines $\gf(t)$
+for that week (Appendix~\ref{sec:food-exper-reserv}), and determines
+the population distribution at the start of week $t+1$. This weekly
+updating is repeated until the food availability over the annual cycle
+converges so that it is the same in successive years.
+
+We find the strategy that is the best given the food supply that is
+generated by a population following this same strategy. We refer to
+this self-consistent best strategy as the optimal strategy, but it is
+in fact an evolutionarily stable strategy. To find the strategy and
+corresponding food availability we iterate over $g$; we calculate the
+best strategy for a given $g$, and then update $g$ to be the food
+availability generated when population members follow this strategy
+\citep[cf.][]{houston88:SDP}.  This iterative procedure usually
+converges.  This strategy specifies behaviour as a function of the
+bird's state and the time within the annual cycle. We call the
+behaviour that results from following the optimal strategy the optimal
+routine. Note that this behaviour is not necessarily the same in each
+year because of the way state variables change. For example, there may
+be year skipping, with tendency to breed every alternate year (see
+below).
+
+To study the realised behaviour of the modelled birds we also run
+forward Monte Carlo simulations in which 10,000 birds follow the optimal
+strategy. The initial state distribution of the birds is the state
+distribution of newly fledged birds. In the simulation the birds use
+the food supply generated under the evolutionarily stable (i.e.\
+optimal) strategy. Birds who have died are removed from the simulation
+and the descendants of the simulated birds are not entered into it.
+Results presented are for simulated birds in the third year of life
+and are based on birds that survive until the end of the third
+year. By this time the influence of the initial state distribution at
+birth has disappeared. 
+
+In some exceptional cases (indicated on the figures) our procedure
+does not converge either because the population size oscillates or the
+best response is not unique.  Note, however, that the magnitude of the
+oscillation or the difference between the best responses is small.
+Therefore, we also include these results.
+
+
+
+\section{Results}
+\label{sec:results}
+
+We first present our results for a baseline case and then investigate
+the effects of several parameters.  To do so we will represent the
+events and their order under the optimal strategies with character
+strings using \rout{B} for a breeding attempt, \rout{i} for moult of
+the inner primaries and \rout{o} for moult of the outer primaries, so
+string \rout{Bio} means the birds first breed, then moult the inner
+primaries and finally moult the outer primaries.
+
+\subsection{The baseline case}
+\label{sec:baseline-case}
+
+
+
+The baseline values for the parameters (Table~\ref{tab:params})
+represent the energetics of a medium-sized bird living in a seasonal
+environment.  We also introduce an asymmetry between the two types of
+feathers assuming that the outer primaries have a greater effect on
+flight efficiency and their energetic cost of moult is higher
+(Table~\ref{tab:params}). The assumption of larger effects of outer
+primaries on flight efficiency is consistent with the fact that many
+birds reduce the speed of primary moult (by reducing the number of
+simultaneously growing feathers) when they moult outer primaries
+\citep{jenni94:moult}. Since outer primaries are longer than inner
+ones \citep{jenni94:moult}, the larger energetic cost to moult them
+seems to be reasonable.
+
+<<label=baseline-routine>>=
+if (file.exists("pol_mol.Rdata")) {
+  load("pol_mol.Rdata");
+} else {
+  ds <- O.sim(nev="~/Projects/moult/runs/baseline/baseline",y=2);
+  i.mo.t <- ind.moult.types(nev="~/Projects/moult/runs/baseline/baseline",y=2);
+  i.mo.t$routine <- gsub("[ad]","",i.mo.t$routine);
+  p.routine.bl <- sort(table(i.mo.t$routine),decreasing=TRUE);
+  p.routine.bl <- p.routine.bl/sum(p.routine.bl,na.rm=TRUE);
+  names(p.routine.bl) <- gsub("[ad]","",
+                              gsub("s","i",gsub("p","o",names(p.routine.bl))));
+  es <- ds$bird %in% i.mo.t$bird[i.mo.t$routine=="Bsp"];
+  pr.breed <-
+    tapply(ds$action=="START"|ds$action=="KEEP",ds$week,mean); 
+  pr.moult1 <- tapply(ds$moult1!="NO",ds$week,mean);
+  pr.moult2 <- tapply(ds$moult2!="NO",ds$week,mean);
+  pr.uval <- tapply(ds$uval,ds$week,mean);
+  r <- tapply(ds$res,ds$week,mean)/12;
+  fea1 <- tapply(ds$fea1,ds$week,mean)/10;
+  fea2 <- tapply(ds$fea2,ds$week,mean)/10;
+  mort.bl <- tapply(ds$event!="ALIVE",ds$week,mean);
+  yrv <- O.yrv(nev="~/Projects/moult/runs/baseline/baseline");
+  ds.bl <- ds;
+  es.bl <- es;
+  rv <- O.rv("~/Projects/moult/runs/baseline/baseline")
+  save(ds.bl,es.bl,pr.breed,pr.moult1,pr.moult2,
+       pr.uval,
+       r,fea1,fea2,es,mort.bl,yrv,rv,
+       file="pol_mol.Rdata")
+}
+postscript(file="fig_behav_bl.eps",horizontal=TRUE,onefile=FALSE,
+           width=9,height=7);
+opar <- par(mar=c(4,5,2,4));
+layout(matrix(1:4,ncol=2));
+x.lab <- expression(paste("Week, ",italic(t)));
+plot(0:51,pr.breed,type="l",ylim=c(0,1),
+     xlab=x.lab,ylab="Proportion",
+     bty="l");
+lines(0:51,pr.moult1,lty=2); 
+lines(0:51,pr.moult2,lty=3); 
+lines(0:51,pr.uval,lty=4); 
+legend(53,1,legend=c("breeding","moult outer","moult inner","foraging"),
+       lty=1:4,xjust=1,yjust=1,bty="n",cex=0.8);
+mtext("a",line=0.5,side=3,adj=0);
+plot(0:51,r,ylim=c(0,1),xlab=x.lab,ylab="State",type="l",bty="l");
+lines(0:51,fea1,lty=2);
+lines(0:51,fea2,lty=3);
+legend(53,0,legend=c("reserves","outer prim.","inner prim."),
+       lty=1:3,xjust=1,yjust=0,bty="n",cex=0.8);
+mtext("b",line=0.5,side=3,adj=0);
+plot(0:51,yrv$rf,type="l",bty="u",ylab="Reproductive value",
+     xlab=x.lab); 
+lines(0:51,3*mort.bl,lty=2,lwd=2);
+axis(side=4,at=c(0,0.075,0.15),labels=c("0.000","0.025","0.050"));
+mtext("Mortality",line=2.5,side=4,adj=0.5)
+legend(53,max(yrv$rf),legend=c("reproductive value","adult mortality"),
+       lty=1:2,lwd=1:2,xjust=1,yjust=1,bty="n",cex=0.8);
+mtext("c",line=0.5,side=3,adj=0); 
+
+es <- rv$a==0 & rv$e==2 & rv$r==6 & rv$f2==10 & rv$t==0 & rv$f1>=0
+plot(rv$f1[es]/10,rv$rv[es],xlab="outer",ylab="repval",
+     ylim=c(0,1),type="l",bty="l")
+es <- rv$a==0 & rv$e==2 & rv$r==6 & rv$f2==10 & rv$t==26 & rv$f1>=0
+lines(rv$f1[es]/10,rv$rv[es],lty=2)
+es <- rv$a==0 & rv$e==2 & rv$r==6 & rv$f1==10 & rv$t==0 & rv$f2>=0
+lines(rv$f2[es]/10,rv$rv[es],lty=3)
+es <- rv$a==0 & rv$e==2 & rv$r==6 & rv$f1==10 & rv$t==26 & rv$f2>=0
+lines(rv$f2[es]/10,rv$rv[es],lty=4)
+legend(1,0,legend=c("Outer, winter","Outer, summer","Inner, winter", 
+             "Inner, summer"),
+       xjust=1,yjust=0,bty="n",lty=1:4)
+mtext("d",line=0.5,side=3,adj=0); 
+
+
+layout(1); 
+par(opar);
+dev.off();
+#ds.bl <- ds;
+#es.bl <- es;
+@
+
+<<label=feather-qu-func>>=
+fq <- function(q1,q2) {
+  if((q1-q2) < 0.01) {
+    paste(round(q1,2)," on average for both the outer and inner primaries",
+          sep="", collapse="");
+  } else {
+    paste(round(q1,2)," and ",round(q2,2),
+          " on average for the outer and inner primaries, respectively",sep="",
+          collapse="");
+  }
+}
+@ 
+
+For the baseline case, birds following the optimal routine always
+breed before moult.  The majority then moult inner primaries followed
+by outer primaries (\rout{Bio}, Fig.~\ref{fig:behav_bl}a). A small
+proportion (around 10 \%) moult outer primaries first and then the
+inner ones (\rout{Boi}). Those who follow the \rout{Bio} pattern start
+to breed about a week earlier (at week
+\Sexpr{round(mean(ds.bl$week[es.bl][ds.bl$action[es.bl]=="START"]),2)}
+on average) than those who follow the \rout{Boi} pattern (at week
+\Sexpr{round(mean(ds.bl$week[!es.bl][ds.bl$action[!es.bl]=="START"]),2)}
+on average). There are no differences in reserves and quality of inner
+primaries between the followers of different routines at week ten, but
+the quality of outer primaries differs; individuals with higher
+quality of outer primaries at week ten
+(\Sexpr{round(mean(ds.bl$fea1[es.bl][ds.bl$week[es.bl]==10])/10,2)} vs
+\Sexpr{round(mean(ds.bl$fea1[!es.bl][ds.bl$week[!es.bl]==10])/10,2)})
+breed earlier and moult inner primaries first (pattern \rout{Bio}).
+Birds forage with high intensity during breeding and when moulting and
+with lower intensity during spring and autumn
+(Fig.~~\ref{fig:behav_bl}a).
+
+The reserves of the modelled birds peak just before breeding, then
+decrease sharply during breeding, rise again when the birds start
+moulting outer primaries and have the highest peak at the beginning of
+winter (Fig.~\ref{fig:behav_bl}b). The quality of feathers decreases
+continuously after moult. Birds do not wait to moult until the quality
+of their feathers abrades totally (i.e.\ $\Fj{j} = 0$), they moult
+with medium quality feathers
+(\Sexpr{fq(mean(ds.bl$fea1[ds.bl$moult1=="START"])/10,mean(ds.bl$fea2[ds.bl$moult2=="START"])/10)}).
+
+Most of the deaths occur during late winter and midsummer
+(Fig.~\ref{fig:behav_bl}c), mainly as a result of starvation. The
+quality of feathers (both inner and outer primaries) of those birds
+who die in winter are lower than those who survive. The reproductive
+value of the newly fledged young is highest at the end of the winter
+but decreases steeply after that (Fig.~\ref{fig:behav_bl}c). Feather
+quality has a large effect on reproductive value in winter but has
+little effect in summer (Fig.~\ref{fig:behav_bl}d). Reproductive value
+in winter is very low unless the outer primaries are of reasonable
+quality (Fig.~\ref{fig:behav_bl}d).
+
+
+
+\subsection{The sequence of moult}
+\label{sec:sequence-moult}
+
+As we have seen, the order of moult typically produced by our model
+(inner primaries first, followed by the outer ones) when there is
+significant seasonality agrees with the order found in many species
+\citep[descendant primary moult or the basic
+sequence,][]{ginn83:moult,baker93:non_pas_guide}. Still, our model
+shows considerable variation in the sequence of moult by members of a
+population.
+
+In order to understand what attributes of the feathers influence the
+sequence of moult we first determine the optimal strategy and
+behaviour for completely symmetric feathers (i.e.\ each pair of
+feather parameters describing the same feature of the two types of
+primaries has the same value for both types of feathers), and then we
+make feathers asymmetric, (introducing a difference between a given
+pair of parameters, so that their mean remains constant) and calculate
+the optimal strategy and behaviour again. 
+
+<<label=fea-asymmetry>>=
+if(file.exists("fea_asymmetry.Rdata")) {
+  load("fea_asymmetry.Rdata");
+} else {
+  odir <- getwd();
+  setwd("../runs/diff_fea");
+  M <- read.inis();
+  M <- data.frame(fora.d=M$P.fora-M$S.fora,flight.d=M$P.flight-M$S.flight,
+                  worn.d=M$P.worn-M$S.worn,def.d=M$P.def.coef-M$S.def.coef,
+                  moult.d=M$moult1-M$moult2,MAXEPS=M$MAXEPS,hiba=M$hiba,
+                  la.back=M$la.back,la.forw=M$la.forw,row.names=rownames(M));
+  M <- M[order(M$MAXEPS,M$fora.d,M$flight.d,M$worn.d,M$def.d,M$moult.d),];
+  e.M <- M$MAXEPS > 0.5;
+  e0.fo <- M$fora.d <= 0;
+  e1.fo <- M$fora.d > 0.0049 & M$fora.d < 0.0051;
+  e0.fl <- M$flight.d <= 0;
+  e1.fl <- M$flight.d > 0.59 & M$flight.d < 0.61;
+  e0.wo <- M$worn.d <= 0;
+  e1.wo <- M$worn.d > 0.139 & M$worn.d < 0.141;
+  e0.de <- M$def.d <= 0;
+  e1.de <- M$def.d > 1.39 & M$def.d < 1.41;
+  e0.mo <- M$moult.d <= 0;
+  e1.mo <- M$moult.d > 0.2 & M$moult.d < 0.22;
+
+  f.list <- rownames(M[e.M & ((e0.fo & e0.fl & e0.wo & e0.de & e0.mo) |
+                              (e1.fo & e0.fl & e0.wo & e0.de & e0.mo) |
+                              (e0.fo & e1.fl & e0.wo & e0.de & e0.mo) |
+                              (e0.fo & e0.fl & e1.wo & e0.de & e0.mo) |
+                              (e0.fo & e0.fl & e0.wo & e1.de & e0.mo) |
+                              (e0.fo & e0.fl & e0.wo & e0.de & e1.mo)),]);
+  as.n <- c("fora.d","moult.d","def.d","worn.d","flight.d","fora.d");
+  s.res <- moult.proc.dat(f.list=paste(f.list,".dat",sep=""));
+  m.or <- sapply(s.res$type.list,moult.order);
+  t.as <- cbind(s.res$database,t(m.or));
+  M.as <- M[rownames(M) %in% f.list,];
+  setwd(odir);
+  save(t.as,s.res,f.list,M.as,as.n,file="fea_asymmetry.Rdata");
+}
+
+@ 
+
+The results are shown in Table~\ref{tab:sequence}. With symmetric
+feathers the birds use both types of sequence (\rout{io} and
+\rout{oi}) more or less equally. Introducing asymmetry in the
+parameters which influence flight ability ($_j\delta$, $_{j}m_{A}$,
+and $_{j}\alpha$; Table~\ref{tab:sequence}, eq.~\eqref{eq:flight_eff})
+results in the baseline sequence of moult i.e.\ inner primaries
+moulted first and then outer primaries; sequence \rout{io}
+(Table~\ref{tab:sequence}). This means that feathers affecting flight
+ability to a greater extent should be moulted later.  Changing the
+rate of abrasion ($_{j}f_{f}$; Table~\ref{tab:sequence},
+eq.~\eqref{eq:Pdelay}) also results in the baseline routine, which
+reveals that feathers abrading faster should be moulted later to keep
+them in good condition for the winter. The energetic cost of moult
+($_{j}\kappa$; Table~\ref{tab:sequence}, eq.~\eqref{eq:delta_m}) has
+the opposite effect. Here feathers with higher energetic cost are
+moulted earlier, i.e.\ the order of moult is swapped compared to the
+baseline (sequence \rout{oi} instead of \rout{io}).  Apart from
+changes in the sequence, the annual routines were very similar to the
+baseline case.
+
+
+\subsection{Seasonal variation in food supply}
+\label{sec:seas-vari-food}
+
+<<label=MAXEPS-behaviour>>=
+odir <- getwd();
+#postscript(file="fig_MAXEPS_behav.eps",horizontal=FALSE,onefile=FALSE,
+#           width=7,height=9);
+plot.bh <- function(ds,i.mo.t,rout=NULL,prop=NULL,...) {
+  es <- (ds$bird %in% ds$bird[ds$week==0&ds$exper==2]) &
+        (ds$bird %in% ds$bird[ds$week==51])
+  if(!is.null(rout)) {
+    es <- es & (ds$bird %in% i.mo.t$bird[i.mo.t$routine==rout])
+  }
+  f1 <- ds$fea1[es & ds$week==10]
+  f2 <- ds$fea2[es & ds$week==10]
+  p.breed <- tapply(ds$action[es]=="START"|ds$action[es]=="KEEP",ds$week[es],
+                    mean);
+  p.moult1 <- tapply(ds$moult1[es]!="NO",ds$week[es],mean);
+  p.moult2 <- tapply(ds$moult2[es]!="NO",ds$week[es],mean);
+  pr.uval <- tapply(ds$uval[es],ds$week[es],mean);
+  
+  plot(0:51,p.breed,type="l",ylim=c(0,1),xlab="week",
+       ylab="proportion",bty="l",...)
+  lines(0:51,p.moult1,lty=2)
+  lines(0:51,p.moult2,lty=3)
+  lines(0:51,pr.uval,lty=4)
+  if(!is.null(prop)) {
+    text(0,1,labels=prop,#round(100*prop,0),
+         pos=4)
+  }
+  invisible(list(f1=f1,f2=f2))
+}
+
+
+if(file.exists("MAXEPS_behav.Rdata")) {
+  load("MAXEPS_behav.Rdata")
+} else {
+  setwd("~/Projects/moult/runs/MAXEPS");
+  eps.inik <- read.inis()
+  eps.inik <- eps.inik[order(eps.inik$MAXEPS,eps.inik$FOOD),]
+  f.list <- rownames(eps.inik[eps.inik$FOOD==2.2 & eps.inik$MAXEPS %in% 
+                              c(0.05,0.4,1.3,1.4,1.5),])
+  b.s <- list()
+  ds.s <- list()
+  i.mo.t.s <- list()
+  for(f in f.list) {
+    i.mo.t <- ind.moult.types(f,y=3)
+    i.mo.t$routine <- gsub("[ad]","",i.mo.t$routine)
+    i.mo.t.s[[f]] <- i.mo.t
+    ds.s[[f]] <- O.sim(f,y=3)
+    
+    a <- table(i.mo.t$routine)
+    b <- rev(sort(a))
+    b <- b[names(b) != "n"]
+    b.s[[f]] <- b
+  }
+  setwd(odir)
+  save(eps.inik,b.s,ds.s,i.mo.t.s,file="MAXEPS_behav.Rdata")
+}
+postscript(file=paste(odir,"/fig_MAXEPS_behav.eps",sep=""),
+           horizontal=FALSE,onefile=FALSE,
+           paper="special",width=7,height=9)
+opar <- par(mar=c(4,4,2,2))
+layout(matrix(1:12,ncol=3,byrow=FALSE))
+i <- 1
+for(f in names(b.s)[1:2]) {
+  for(r in names(b.s[[f]])[1:4]) {
+    plot.bh(ds.s[[f]],i.mo.t.s[[f]],r,prop=r)
+    mtext(letters[i],line=1,side=3,adj=0)
+    i <- i+1
+  }
+}
+for(f in names(b.s)[3:5]) {
+  r <- names(b.s[[f]])[1]
+  plot.bh(ds.s[[f]],i.mo.t.s[[f]],r,prop=r)
+  mtext(letters[i],line=1,side=3,adj=0)
+  i <- i+1
+}
+plot(0:1,0:1,type="n",xaxt="n",yaxt="n",xlab="",ylab="",bty="n")
+legend(0,0.7,legend=c("breeding","moult outer","moult inner","u val"),
+       lty=1:4,xjust=0,yjust=0.5,bty="n",cex=1.2)
+par(opar)
+layout(1)
+dev.off()
+
+
+@ 
+
+<<label=MAXEPS>>=
+odir <- getwd();
+if(file.exists("M_res22.Rdata")) {
+  load("M_res22.Rdata");
+} else {
+  setwd("~/Projects/moult/runs/MAXEPS");
+  M.inik <- read.inis();
+  M.inik <- M.inik[,c("FOOD","MAXEPS","hiba","la.back","la.forw")]
+  M.inik <- M.inik[order(M.inik$MAXEPS,M.inik$FOOD),]
+  f.list <- rownames(M.inik[M.inik$FOOD==2.2 & M.inik$MAXEPS!=1.6,]);
+  f.list <- paste(f.list,".dat",sep="");
+  s.res <- moult.proc.dat(f.list=f.list);
+  m.res <- mort.ser(f.list=f.list,y=1);
+  f.list <- rownames(eps.inik[eps.inik$FOOD==2.2,]);
+  m.types <- list()
+  for(i in f.list) {
+    i.mo.t <- ind.moult.types(i,y=3)
+    i.mo.t$routine <- gsub("[ad]","",i.mo.t$routine)
+    i.mo.t$routine <- gsub("\(B\)+","\\1",i.mo.t$routine)
+    i.mo.t$routine <- gsub("\(p\)+","\\1",i.mo.t$routine)
+    i.mo.t$routine <- gsub("\(s\)+","\\1",i.mo.t$routine)
+    i.mo.t$routine <- gsub("[sp]","m",i.mo.t$routine)
+    m.types[[i]] <- i.mo.t
+  }
+  nm.types <- list()
+  for(i in names(m.types)) {
+    x <- table(m.types[[i]]$routine)
+    x <- x/sum(x)
+    nm.types[[i]] <- x
+  }
+  y <- names(unlist(nm.types))
+  y <- sub("^.*\\.","",y)
+  types.n <- c("n","m","mm","B","mmB","mB","Bm","Bmm")
+  pl.types <- list()
+  for(i in names(nm.types)) {
+    x <- rep(0,length(types.n)+1)
+    names(x) <- c("Other",types.n)
+    for(j in types.n) {
+      if(!is.na(nm.types[[i]][j])) {
+        x[j] <- nm.types[[i]][j]
+        nm.types[[i]][j] <- 0
+      }
+    }
+    x["Other"] <- sum(nm.types[[i]])
+    pl.types[[i]] <- x
+  }
+  setwd(odir)
+  save(M.inik,s.res,m.res,pl.types,file="M_res22.Rdata");
+}
+
+put.text <- function(x0,y0,label,hoffset=0.15,voffset=0.2,col="white") {
+  h <- strheight(label)*(1+voffset)
+  w <- strwidth(label)*(1+hoffset)
+  x.l <- x0-w/2
+  y.b <- y0-h/2
+  x.r <- x0+w/2
+  y.t <- y0+h/2
+  rect(x.l,y.b,x.r,y.t,col=col,border=FALSE)
+  text(x0,y0,label)
+}
+
+postscript(file="fig_MAXEPS.eps",horizontal=TRUE,onefile=FALSE,
+           width=9,height=7);
+
+opar <- par(mar=c(5,5,2,1),bty="l");
+layout(matrix(1:4,ncol=2,byrow=TRUE))
+eps.to.pl <- eps.inik[names(pl.types),"MAXEPS"]
+eps.to.pl <- eps.to.pl[-length(eps.to.pl)]
+eps.to.plot <- eps.to.pl
+xx <- data.frame(pl.types)
+xx <- t(xx)
+xx <- data.frame(xx[-nrow(xx),])
+x <- barplot(t(xx),
+             xlab="epsilon",ylab="proportion",
+             density=c(20,20,-1,-1,-1,40,20,20,40),
+             col=c(rep("black",2),"white","grey",rep("black",5)),
+             angle=c(45,0,0,0,0,90,90,135,135),
+             space=0,xaxt="n")
+axis(side=1,at=x,labels=formatC(eps.to.pl,digits=2,format="f"),las=2)
+box(bty="l")
+put.text((x[2]+x[3])/2,0.1,"other")
+put.text((x[2]),0.25,"n")
+put.text((x[8]+x[9])/2,0.68,"B")##TODO check the labels positions!
+put.text(x[8],0.18,"m")
+put.text((x[6]+x[7])/2,0.47,"mm")
+put.text((x[1]+x[2])/2,0.7,"mmB")
+put.text(x[6],0.85,"mB")
+put.text((x[11]+x[12])/2,0.75,"Bm")
+put.text((x[15]+x[16])/2,0.7,"Bmm")
+mtext("a",line=1,side=3,adj=0);
+
+setwd(odir);
+d.res <- s.res$database;
+max.eps <- M.inik$MAXEPS[M.inik$FOOD==2.2 & M.inik$MAXEPS!=1.6];
+es <- M.inik$hiba>0;
+es <- es[M.inik$FOOD==2.2 & M.inik$MAXEPS!=1.6];
+p.routine.ep <- s.res$type.list[[rownames(M.inik[M.inik$FOOD==2.2 & 
+                                                 M.inik$MAXEPS==0.4,])]];
+p.routine.ep <- p.routine.ep/sum(p.routine.ep,na.rm=TRUE);
+names(p.routine.ep) <- gsub("[ad]","",gsub("s","i",
+                                           gsub("p","o",names(p.routine.ep))));
+plot(max.eps,d.res$n.brood,type="n",xlab="maxeps",ylab="number of events",
+     ylim=c(0,max(c(d.res$n.brood,d.res$n.m1,d.res$n.m2),na.rm=TRUE)));
+lines(max.eps,d.res$n.brood,type="l",lty=1,pch=1);
+points(max.eps,d.res$n.brood,pch=21,bg="white");
+lines(max.eps,d.res$n.m1,lty=2);
+lines(max.eps,d.res$n.m2,lty=3);
+points(max.eps,d.res$n.m1,pch=24,bg="white");
+points(max.eps,d.res$n.m2,pch=22,bg="white");
+mtext("*",at=max.eps[es],line=-0.5);
+legend(0,2,legend=c("breeding","moult outer","moult inner"),
+       bty="n",lty=1:3,pch=c(21,24,22),pt.bg="white");
+mtext("b",line=1,side=3,adj=0);
+plot(max.eps,d.res$t.brood,type="n",xlab="maxeps",ylab="time of events",
+     ylim=range(c(d.res$t.brood,d.res$t.m1,d.res$t.m2),na.rm=TRUE)); 
+lines(max.eps,d.res$t.brood,lty=1);
+lines(max.eps,d.res$t.m1,lty=2);
+lines(max.eps,d.res$t.m2,lty=3);
+points(max.eps,d.res$t.brood,pch=21,bg="white")
+points(max.eps,d.res$t.m1,pch=24,bg="white")
+points(max.eps,d.res$t.m2,pch=22,bg="white")
+mtext("*",at=max.eps[es],line=-0.5);
+legend(max(max.eps),max(c(d.res$t.brood,d.res$t.m1,d.res$t.m2),na.rm=TRUE),
+       legend=c("breeding","moult outer","moult inner"),
+       bty="n",lty=1:3,pch=c(21,24,22),pt.bg="white",xjust=1);
+mtext("c",line=1,side=3,adj=0);
+
+
+plot(max.eps,max.eps,type="n",ylim=c(0,1),xlab="maxeps",ylab="proportion");
+lines(max.eps,d.res$n.abort/d.res$n.brood,lty=1);
+points(max.eps,d.res$n.abort/d.res$n.brood,pch=24,bg="white");
+lines(max.eps,(m.res$ye.pred+m.res$ye.starv)/m.res$ye.surv,lty=2);
+points(max.eps,(m.res$ye.pred+m.res$ye.starv)/m.res$ye.surv,pch=21);
+mtext("*",at=max.eps[es],line=-0.5);
+legend(0,1,legend=c("nest desertion","mortality"),bty="n",lty=1:2,
+       pt.bg="white",pch=c(24,21));
+       
+mtext("d",line=1,side=3,adj=0);
+
+
+layout(1);
+par(opar);
+dev.off();
+
+@ 
+
+We now study how environmental seasonality affects moult strategies.
+Given that tropical regions have less environmental seasonality, this
+might shed light on why moult strategies are more variable in the
+tropical zone than in the temperate zone.  Since changing the seasonal
+variation $\epsilon$ for baseline parameter values rapidly leads to
+extinction of the population at extreme $\epsilon$ values (outside the
+range of 0.4-0.9), we investigate seasonal variation of food for a
+higher amount of food ($A_{food} =2.2$).  Note, however, that the
+model with baseline food behaves similarly within the range where the
+birds survive.
+
+When seasonality is very low ($\epsilon \le 0.05$), the birds follow a
+strategy which produces very variable behaviour in a given year
+(Figs~\ref{fig:MAXEPS}a, \ref{fig:MAXEPS-behav}a-d).  Many of the
+birds have a complete or incomplete moult before breeding (\rout{ioB}
+and \rout{iB}/\rout{oB}), while some of them do not breed at all, they
+just moult.  A rather large proportion of birds follow
+other behaviours such as moult of inner primaries between two
+breeding attempts (\rout{BiB}), breeding between the moult of
+primaries (\rout{iBo}) or do not breed and moult at all.  Breeding is
+delayed until the end of the favourable period of the year and moult
+of primaries mainly occurs before breeding (Figs~\ref{fig:MAXEPS}a,c,
+\ref{fig:MAXEPS-behav}a-d).  The proportion of birds that desert is
+very high under this condition while the adult mortality is low
+(Fig.~\ref{fig:MAXEPS}d).
+
+
+Under medium seasonality ($0.05 < \epsilon < 1.2$), birds rarely have
+a complete moult and breed in the same year; when they breed they
+moult either no or just one type of primaries (Figs~\ref{fig:MAXEPS}a,
+\ref{fig:MAXEPS-behav}e-h). Having a complete moult but not breeding
+is also a common behavioural pattern. Our computations show that (i)
+moulting outer primaries and breeding rarely occur together in the
+same year and (ii) an individual's behaviour in a given year
+influences its behaviour in the following year; those individuals who
+breed in one year usually skip breeding in the next year, while those
+who moult outer primaries usually skip this behaviour in the next
+year.  As seasonality increases, the proportion of post-nuptial
+partial moult (e.g.\ \rout{Bi}) gradually increases at the expense of
+the proportion of prenuptial partial moult (Fig.~\ref{fig:MAXEPS}a).
+Nest desertion is still high under medium seasonality but it gradually
+decreases as seasonality increases (Fig.~\ref{fig:MAXEPS}d).
+
+When seasonality is high ($\epsilon \ge 1.2$), the diversity of the
+routines is low; most of the birds have at least one breeding attempt
+and a complete postnuptial moult (Fig.~\ref{fig:MAXEPS}a,c).  Note,
+however, that there is variation within this basic type of routine.
+When seasonality is moderately high ($\epsilon = 1.3$) the birds
+mainly follow the baseline routine \rout{Bio}
+(Fig.~\ref{fig:MAXEPS-behav}i).  Increasing the seasonal variation of
+food from $\epsilon = 1.3$ results in, first, an increase of the
+number of breeding attempts and a switch in the order of moult; outer
+primaries are moulted first (Fig.~\ref{fig:MAXEPS-behav}j).
+Increasing $\epsilon$ further leads to a large overlap between moults
+of inner and outer primaries (i.e.\ fast, simultaneous moult;
+Fig.~\ref{fig:MAXEPS-behav}k). Nest desertion rate is the lowest under
+high seasonality (Fig.~\ref{fig:MAXEPS}d). Adult mortality, however,
+increases rapidly as seasonality becomes higher
+(Fig.~\ref{fig:MAXEPS}d).
+
+Birds forage most intensely during breeding and moult under all
+$\epsilon$. Foraging intensity during winter, however, increases with
+increasing seasonality i.e.\ birds forage more intensely in seasonal
+environments (Fig.~\ref{fig:MAXEPS-behav}). The average number of
+breeding attempts has a minimum at intermediate seasonality
+(Fig.~\ref{fig:MAXEPS}b).
+
+To investigate the case of no seasonal variation we set $\epsilon =
+0$. In this case, birds breed and moult at any time of year following
+a variety of routines; their behaviour largely depends on the quality
+of their feathers: if the quality of both types of primaries is good,
+then they breed, otherwise they moult the primaries whose quality is
+lower.  The rate of nest desertion is the highest under no
+environmental variation (Fig.~\ref{fig:MAXEPS}d).
+
+
+
+\subsection{Food}
+\label{sec:food}
+
+<<label=amount-food>>=
+odir <- getwd();
+if(file.exists("amount-food.Rdata")) {
+  load("amount-food.Rdata")
+} else {
+  setwd("../runs/food_patt");
+  ##y5.1 <- O.yrv("food_patt040342");
+  y5.1 <- O.yrv("food_patt043747");
+  y5.2 <- O.yrv("food_patt089078");
+  y5.3 <- O.yrv("food_patt040342");
+  y8.1 <- O.yrv("food_patt023573");
+  y8.2 <- O.yrv("food_patt004205");
+  y8.3 <- O.yrv("food_patt023447");
+  y0.1 <- O.yrv("food_patt001771");
+  y0.2 <- O.yrv("food_patt049079");
+  y0.3 <- O.yrv("food_patt079227");
+  y2.1 <- O.yrv("food_patt058986");
+  y2.2 <- O.yrv("food_patt094462");
+  y2.3 <- O.yrv("food_patt064184");
+  f.nev <- "~/Projects/moult/runs/food_patt/food_patt079227";
+  ds <- O.sim(nev=f.nev,y=2);
+  imt <- ind.moult.types(nev=f.nev,y=2);
+  e.Bs <- ds$bird %in% imt$bird[imt$routine=="Bas"];
+  e.Bp <- ds$bird %in% imt$bird[imt$routine=="Bap"];
+  e.sp <- ds$bird %in% imt$bird[imt$routine=="sp"];
+  e.ps <- ds$bird %in% imt$bird[imt$routine=="ps"];
+  es <- list(e.Bs=e.Bs,e.Bp=e.Bp,e.ps=e.ps,e.sp=e.sp);
+  w.meas <- 10;
+  a.f1 <- unlist(lapply(es,function(x) mean(ds$fea1[x&ds$week==w.meas])/10));
+  a.f2 <- unlist(lapply(es,function(x) mean(ds$fea2[x&ds$week==w.meas])/10));
+  sd.f1 <- unlist(lapply(es,function(x) sd(ds$fea1[x&ds$week==w.meas])/10));
+  sd.f2 <- unlist(lapply(es,function(x) sd(ds$fea2[x&ds$week==w.meas])/10));
+  setwd(odir)
+  save(y5.1,y5.2,y5.3,y8.1,y8.2,y8.3,y0.1,y0.2,y0.3,y2.1,y2.2,y2.3,
+       a.f1,a.f2,sd.f1,sd.f2,file="amount-food.Rdata");
+}
+m.G <- max(y5.1$G2,y5.2$G2,y5.3$G2,y8.1$G2,y8.2$G2,y8.3$G2,y0.1$G2,y0.2$G2,
+           y0.3$G2,y2.1$G2,y2.2$G2,y2.3$G2);
+m.n.fora <- max(y5.1$n.fora,y5.2$n.fora,y5.3$n.fora,y8.1$n.fora,y8.2$n.fora,
+           y8.3$n.fora,y0.1$n.fora,y0.2$n.fora,
+           y0.3$n.fora,y2.1$n.fora,y2.2$n.fora,y2.3$n.fora);
+postscript(file="fig_food_patt.eps",horizontal=TRUE,onefile=FALSE,
+           width=9,height=7);
+layout(matrix(1:4,ncol=2));
+plot(0:51,y5.3$n.fora,ylim=c(0,m.n.fora),type="l",
+     xlab="week",ylab="Density of foragers",bty="l");
+lines(0:51,y8.3$n.fora,lty=2);
+lines(0:51,y0.3$n.fora,lty=3);
+lines(0:51,y2.3$n.fora,lty=4);
+legend(0,m.n.fora,legend=formatC(c(1.5,1.8,2.0,2.2),digits=1,format="f"),
+       bty="n",lty=1:4,ncol=2,yjust=0.8)
+mtext("a",line=0.5,side=3,adj=0);
+plot(0:51,y5.3$G2,ylim=c(0,m.G),type="l",bty="l",
+     xlab="week",ylab="Amount of food");
+lines(0:51,y8.3$G2,lty=2);
+lines(0:51,y0.3$G2,lty=3);
+lines(0:51,y2.3$G2,lty=4);
+legend(0,0,legend=formatC(c(1.5,1.8,2.0,2.2),digits=1,format="f"),
+       bty="n",lty=1:4,ncol=2,yjust=0)
+mtext("b",line=0.5,side=3,adj=0);
+plot(1,1,type="n",xlim=c(0,1),ylim=c(0,1),xlab="Quality of outer primaries",
+     ylab="Quality of inner primaries",bty="l");
+arrows(a.f1-sd.f1,a.f2,a.f1+sd.f1,a.f2,angle=90,code=3,length=0.1);
+arrows(a.f1,a.f2-sd.f2,a.f1,a.f2+sd.f2,angle=90,code=3,length=0.1);
+routs <- sub("s","i",sub("p","o",sub("e\\.","",names(a.f1))));
+r.w <- strwidth(routs)*1.5;
+r.h <- strheight(routs)*1.5;
+rect(a.f1-r.w/2,a.f2-r.h/2,a.f1+r.w/2,a.f2+r.h/2,col="white",border="white");
+text(a.f1,a.f2,routs);
+mtext("c",line=0.5,side=3,adj=0);
+layout(1);
+dev.off();
+
+@ 
+
+Increasing the amount of food raises the density of birds through the
+year (Fig.~\ref{fig:food.patt}a). Because the food per bird decreases
+with the density of birds, the average amount of food available for a
+forager ($\gf(t)$, eq.~\eqref{eq:dens_food}) changes little. On the
+other hand, its yearly pattern changes as the amount of food is
+increased; the more abundant the food supply is, the lower is its
+variation (Fig.~\ref{fig:food.patt}b).  As a consequence, the birds'
+optimal routines change with increasing amount of food in a way that
+is similar to how they change with decreasing seasonal variation (see
+above).  The routine that a bird follows is mainly determined by the
+quality of its feathers (Fig.~\ref{fig:food.patt}c).
+
+Decreasing the amount of food available for the birds from its
+baseline value -- given that the birds receive enough food to survive
+-- does not change the optimal routines; the birds follow the baseline
+routine \rout{Bio}.
+
+
+\subsection{Background mortality}
+\label{sec:background-mortality}
+
+<<label=bgr-mort>>=
+odir <- getwd();
+if (file.exists("bgr_mort.Rdata")) {
+  load("bgr_mort.Rdata");
+} else {
+  setwd("../runs/bm");
+  M <- read.inis(patt="^bm2.*\\.ini$");
+  M <- M[,c("MAXEPS","baseP","hiba","la.back","la.forw")];
+  M <- M[order(M$MAXEPS,M$baseP),];
+  s.res <- moult.proc.dat(f.list=paste(rownames(M),".dat",sep=""));
+  setwd(odir)
+  save(M,s.res,file="bgr_mort.Rdata");
+}
+d.r <- s.res$database;
+es <- M$hiba!=1;
+postscript(file="fig_bgr_mort.eps",onefile=FALSE,horizontal=FALSE,
+           width=5.5,height=8);
+layout(matrix(1:2,ncol=1));
+opar <- par(bty="l",mar=c(5,5,2,1));
+plot(M$baseP[es&M$MAXEPS==0.5],d.r$n.broods[es&M$MAXEPS==0.5],
+     type="o",ylim=c(0,max(d.r$n.broods[es],na.rm=TRUE)),
+     xlab="background mortality",ylab="Number of breedings");
+lines(M$baseP[es&M$MAXEPS==0.9],d.r$n.broods[es&M$MAXEPS==0.9],
+      type="o",lty=2,pch=2);
+lines(M$baseP[es&M$MAXEPS==1.3],d.r$n.broods[es&M$MAXEPS==1.3],
+      type="o",lty=3,pch=3);
+legend(0,max(d.r$n.broods[es],na.rm=TRUE),legend=c(0.5,0.9,1.3),
+       lty=1:3,pch=1:3,bty="n");
+mtext("a",line=0.5,side=3,adj=0);
+plot(M$baseP[es&M$MAXEPS==0.5],d.r$t.fbrood[es&M$MAXEPS==0.5],
+     type="o",ylim=range(d.r$t.fbrood[es],na.rm=TRUE),
+     xlab="background mortality",ylab="Time of first breedings");
+lines(M$baseP[es&M$MAXEPS==0.9],d.r$t.fbrood[es&M$MAXEPS==0.9],
+      type="o",lty=2,pch=2);
+lines(M$baseP[es&M$MAXEPS==1.3],d.r$t.fbrood[es&M$MAXEPS==1.3],
+      type="o",lty=3,pch=3);
+legend(max(M$baseP[es&M$MAXEPS==0.5]),max(d.r$t.fbrood[es],na.rm=TRUE),
+       legend=c(0.5,0.9,1.3),xjust=1,
+       lty=1:3,pch=1:3,bty="n");
+mtext("b",line=0.5,side=3,adj=0);
+par(opar);
+layout(1);
+dev.off();
+
+@ 
+
+We studied the effect of background mortality on optimal routines by
+varying $M_b$ at different levels of environmental seasonality,
+$\epsilon=0.5, 0.9, 1.3$. Basically, the annual routines change in a
+way which results in more breeding under the more dangerous
+environmental conditions irrespective of $\epsilon$. As $M_b$
+increases, the birds increase their number of breeding attempts
+(Fig.~\ref{fig:bgr_mort}a). As a result, under low seasonal variation,
+they start to breed in every year instead of skipping breeding in some
+years (Fig.~\ref{fig:bgr_mort}a), and, under high $\epsilon$, they
+even have two breeding attempts \citep[cf.][]{mcnamar03:entrail}. The
+proportion of breeding attempts that result in desertion, the time of
+first breeding (Fig.~\ref{fig:bgr_mort}b), and the proportions of
+moults of outer and inner primaries all decrease.  The speed of the
+moult (i.e.\ the overlap between the moult of the two types of
+feathers) and the degree of moult-breeding overlap also increase with
+raised background mortality.
+
+
+\subsection{Other parameters}
+\label{sec:other-parameters}
+
+
+To investigate the robustness of our model we ran many computations in
+which we changed the value of other input parameters (increase and
+decrease by c. 20 \% of their baseline values, one parameter at a
+time). We found that the alteration of the parameters $\theta$,
+$n_{brood}$, $N_0$, and $M_f$  does not change the baseline
+optimal annual routine. Constant rate of feather abrasion (i.e.  wear
+is independent of foraging intensity) also produces similar results.
+We will report the effects of physiological parameters (e.g.\
+energetic costs) elsewhere.
+
+
+\section{Discussion}
+\label{sec:discussion}
+
+We have shown that environmental seasonality and life expectancy can
+affect life history parameters and annual routines substantially.  Our
+model predicts that if seasonality is high, a reduction in seasonality
+lowers breeding effort (measured as the number of breeding attempts)
+and adult mortality. At lower seasonality the effect of seasonality is
+minimal. The finding that birds living under low seasonality have
+lower breeding effort and mortality than birds living under high
+seasonality is in accordance with the well-established empirical
+results on the differences in life history traits between tropical and
+temperate birds
+\citep{skutch49:tropic,lack68,ricklefs69:trop_temp,ricklefs80:geogr,
+  murray85:clutch_size, martin96:trop_diff,
+  stutchbury01:tropic_birds}.  Three major hypotheses try to explain
+these life history differences
+\citep{murray85:clutch_size,martin96:trop_diff}.  The nest predation
+hypothesis assumes that birds in the tropics have low breeding effort
+and hence low mortality because they try to minimise the loss caused
+by the high level of nest predation
+\citep{skutch49:tropic,martin96:trop_diff}.  The food limitation
+hypothesis states that birds have small clutches in the tropics
+because the small variation in the food supply allows only a limited
+surplus for reproduction during the tropical summer
+\citep{lack47:clutchsize,ashmole63:hyp,lack68,ricklefs80:geogr}. The
+adult survival hypothesis argues that low seasonality in the tropics
+leads to high adult survival which in turn selects for low
+reproductive effort \citep{murray85:clutch_size}. It is still unclear
+which of these hypothetical effects is more important in shaping life
+histories \citep{martin96:trop_diff}.
+
+Our result emphasises the importance of the environmental seasonality
+in the food supply for the evolution of these life history differences
+and -- since we did not vary predation hazard -- shows that
+differences in nest predation risk are not necessary
+\citep[cf.][]{martin96:trop_diff}.  Our results based on changing
+environmental seasonality, $\epsilon$, support the food limitation
+hypothesis, whereas our results based on changing background
+mortality, $M_b$, support the adult mortality hypothesis. (For a
+fuller discussion of the effects of background mortality on annual
+routines of reproduction see \citet{mcnamar03:entrail}.) In our model,
+birds are able to control reproductive effort only by varying the
+number of reproductive attempts. A complete analysis, however, must
+allow clutch size to co-evolve with other aspects of the annual
+routine.  We believe that extending the type of model we have
+presented here to include clutch size has tremendous potential for
+investigating these issues.
+
+When the environment is seasonal our model predicts a slow (the moults
+of the two feather types do not overlap) and complete postnuptial
+moult, which is also the most common moult strategy found among
+temperate zone sedentary birds \citep{ginn83:moult,jenni94:moult} as
+well as among many tropical species
+\citep[e.g.][]{payne80:season,DittamiG85,TidemannW94,wikelski00:_season}.
+Several ecological factors may favour this type of annual routine.
+Environmental seasonality means the alternation of bad and good
+seasons (e.g.\ winter and summer or dry and rainy seasons), with
+reduced survival expectation for both adults and juveniles in the bad
+season.  Early breeding then allows newly fledged young to gain enough
+experience to survive the winter.  Late moult, on the other hand,
+means that feathers have less time to abrade before the harsh winter
+when feather quality is most important.  The fact that feather quality
+counts less during breeding -- when the conditions are good -- also
+allows birds to moult just before the winter.  In the baseline case
+the order of moult further supports this argument: birds moult those
+feathers (the outer primaries) later which have the larger effect on
+flight ability.  This ensures that the quality of these feathers is
+higher during the winter than those of the less important inner
+primaries. This happens despite the fact that the energetic cost of
+the moult of the outer primaries is higher than that of the inner
+ones, i.e.\ from a purely energetic point of view it would be better
+to moult the outer primaries earlier when the food supply is more
+abundant. This higher energetic cost could explain why birds start to
+moult earlier when they can in our model.  It also sheds light on why
+birds in our model switch the order of moult when they finish breeding
+late; keeping the baseline order \rout{io} in this case would mean
+that birds would need to perform the more energy-demanding moult when
+the \co[T]{seasonally decreased}{} food supply is low. If seasonality
+is very \co[T]{large}{pronounced}, modelled birds usually moult
+faster. This behaviour is well-documented for species at high
+latitudes
+\citep[e.g.][]{holmes71:red_sandp,earnst92:tundr_swans,hemborg01:long_term}.
+Moulting immediately after breeding is also the most common moult
+strategy for migratory bird species breeding in the temperate zone
+\citep{svensson99:phylo}. This might be the result of phylogenetic
+inertia \citep[e.g.\ migrants retain the ancestral moult strategy of
+non-migratory birds,][]{svensson99:phylo} or that postnuptial moult is
+still beneficial because of, for example, the advantages of having
+fresh flight feathers available for autumn migration
+\citep{holmgren95:sched}.
+
+Decreasing the seasonal variation in food results in harsher breeding
+condition in summer but milder winters, which improves survival and so
+makes breeding less urgent.  As a consequence, it is optimal in our
+model to avoid breeding and the moult of both types of primaries
+during the same year. The resulting routine then is an alternation
+between breeding and moulting some of the primaries in one year and
+having a complete moult but no breeding in the other year. This result
+may, however, be a consequence of having no clutch size decision in
+our model, because the only way in which birds can reduce breeding
+effort is to skip breeding. It might be that, as seasonality
+decreases, real birds will first reduce clutch size instead of
+skipping as is widely reported for tropical birds
+\citep{lack47:clutchsize,ricklefs80:geogr,murray85:clutch_size}.
+Consequently, in an environment where the food supply does not
+fluctuate significantly from year to year, one might expect skipping
+of breeding only in birds where clutch size cannot be further reduced
+i.e.\ in birds laying one egg per breeding attempts, like albatrosses.
+
+The routines that our model has generated under low seasonality
+closely resemble those found in several species of albatrosses
+\citep{prince93:albat_moult,langston95:unusual,langston96:molt}.  For
+instance, \citet{prince93:albat_moult} found that Grey-headed
+Albatrosses \textit{Diomedea chrysostoma} (a species typically
+breeding only in every second year) moult on average 8.37 primaries
+(out of 10) in the year when they do not breed but only 2.97 primaries
+when they breed.  \citet{langston95:unusual} also describe a similar
+annual routine for the Laysan Albatross \textit{D. immutabilis} and
+the Black-footed Albatross \textit{D. nigripes}. They found two
+distinct patterns of moult, namely a complete primary moult and an
+incomplete primary moult during which primaries of variable numbers
+and positions where replaced. \citet{langston95:unusual} hypothesised
+that if birds finish a successful breeding attempt the moult is
+incomplete.
+
+If seasonality is further reduced the modelled birds follow a large
+variety of annual behaviour, the most frequent of which is moult before
+breeding (prenuptial moult) because the food during summer is reduced
+to a level at which breeding only becomes possible with high quality
+feathers.  On the other hand, the winter is so mild that birds can
+survive it with abraded feathers. This kind of annual schedule has
+been reported for the Seychelles Fody \textit{Foudia sechellarum}
+\citep{Brooke85:toc-toc} and a couple of Sturnidae species living in
+South Africa \citep{Craig83:starlings} but the majority of tropical
+species have postnuptional moult \citep{foster75:overlap,
+  stutchbury01:tropic_birds}.  This discrepancy between the modelled
+and real birds might be caused by the temporal pattern of factors not
+included in the model \citep[e.g.\
+predation,][]{stutchbury01:tropic_birds} which may affect the relative
+timing of breeding and moult.
+
+Only a very small seasonality (around 1\% of the yearly average of
+food) is enough to maintain distinctly seasonal annual routines in our
+model.  A similar effect has been found by \citet{mcnamar03:entrail}.
+This might explain why birds follow a well determined seasonal
+schedule even at or close to the equator and under seemingly very
+uniform climatic conditions as both \citet{ward69:yellow} (from
+Singapore, 1\textsuperscript{o}20$'$ N) and \citet{fogden72:sarawak}
+(from Sarawak, Borneo, 1\textsuperscript{o}12$'$ N) reported.  Both
+authors describe some seasonal variation in the food supply despite
+the aseasonal climatic conditions, which, according to our model,
+might be enough to maintain the seasonal annual routines at these
+places. When no seasonal difference exist the modelled birds show
+rather irregular schedules, with moulting and breeding occurring in
+the population over the whole year. To our knowledge, only one field
+study reported a similar annual schedule for birds
+\citep{tallman97:amazon} which might indicate the rareness of this
+condition.
+
+By comparing the state variables of birds following different
+schedules we have shown that feather quality may have a strong
+influence on the organisation of annual routines. Birds with higher
+feather quality can breed earlier and/or more frequently than birds
+with more abraded feathers.  According to our calculations, relatively
+small differences early in the year can greatly influence behaviour
+later. This prediction can be tested in the field by manipulating
+winter feather condition and then observing breeding behaviour in the
+next spring.  Testing this prediction may illuminate the mechanism by
+which the cost of reproduction might operate
+\citep[cf.][]{nilsson96:cost}.  Furthermore, if it turned out that
+feather quality has a great influence on breeding behaviour and so on
+reproductive success, then monitoring quality could reveal valuable
+information about population processes.
+
+Our model predicts that, under a seasonal environment, it may be
+optimal to moult different feather types at different times. Feathers
+with larger effects on flight ability, higher abrasion rate and lower
+energetic cost of moult should be moulted closer to the winter (i.e.\
+later) than those with the opposite attributes. Since outer primaries
+are assumed to affect flight efficiency more \citep{jenni94:moult} and
+abrade faster than inner primaries
+\citep{baker93:non_pas_guide,langston95:unusual} our model correctly
+predicts the sequence of moult that is most commonly found in nature
+\citep[e.g.][]{ginn83:moult,baker93:non_pas_guide,jenni94:moult}. By
+doing so it offers a new explanation for why most birds renew their
+primaries descendantly: the sequence of moult may be an adaptive
+response to the problem of optimal timing of moult of differing
+feathers within the same feather tract. An extension of this argument
+may explain why the sequence of primary moult is stable and the
+sequence of secondary moult is more variable. Primaries tend to differ
+from each other and so we would expect a well determined sequence of
+moult. In contrast, secondaries are more uniform and so it may be
+reasonable to expect that their order of replacement will be less
+regular across species.
+
+It might be argued that the sequence of moult is simply a consequence
+of the physiological coupling of the replacement of feathers within
+the same feather tract. There are, however, many observed exceptions
+to this strict sequence \citep{baker93:non_pas_guide,jenni94:moult}
+which makes this physiological constraint implausible.  Nevertheless,
+in most of our computations the two types of primaries were moulted
+immediately after each other despite the fact they were not coupled.
+
+It follows from the above argument that individual variation in the
+sequence of moult can be an adaptive response to some unusual
+environmental conditions or changes in internal state (e.g.\
+malnutrition or disease). We suggest that detailed studies of these
+variations may help to improve our understanding of the evolutionary
+forces behind moult strategies.
+
+To conclude, we have investigated several aspects of the annual
+schedules of non-migratory birds with a self-consistent
+state-dependent optimal annual routine model. By changing seasonality
+our model successfully generates a wide variety of moult sequences
+found in nature. Furthermore, by introducing two feather types we were
+able to offer a new explanation for why birds generally moult their
+primaries descendantly. Future directions of investigation should
+include the effect of physiology and migration on moult strategies.
+Also, to study life history differences between tropical and temperate
+birds future models should allow the clutch size to be optimised.
+
+\newpage 
+
+\section{Acknowledgements}
+\label{sec:acknowledgements}
+
+We thank Kate Lessels and three anonymous referees for their
+comments on an earlier version of the manuscript. ZB was supported by
+a Marie Curie Fellowship of the European Community programme
+``Improving Human Research Potential and the Socio-economic Knowledge
+Base'', contract number HPMF-CT-2001-01150. TPW was supported by the
+Swedish Natural Research Council. The collaboration between Bristol
+and Lund was supported by a Royal Society Joint Project Grant. The
+study was supported by a OTKA Grant (T046661) and a Marie Curie
+European Reintegration Grant (contract no. 005065).
+
+
+\newpage
+
+\setcounter{section}{1}
+\renewcommand{\thesection}{\Alph{section}}
+
+\section*{Appendix A: State variables and their dynamics}
+\label{App:A}
+
+\setcounter{equation}{0}
+\renewcommand{\theequation}{A.\arabic{equation}}
+
+The bird's state is given by five state variables: quality of its
+feathers (\Fo\ and \Fi), experience $e$, age of the brood $a$ and
+energy reserves $r$.  
+
+
+\subsection{Feathers and moult}
+\label{sec:feather-dynamic}
+
+\Fo\ and \Fi\ represent the quality of outer and inner primaries,
+respectively. Both feather quality variables can vary (in steps of
+$1/10$) between $0$ (very poor) and $1$ (newly moulted).  \Fj{j} can
+also take negative integer values ($-_{j}m_{length} \le \Fj{j} \le
+-1$) to signal that moult is in progress.  The quality of feathers
+changes as follows.  If the bird is moulting with $\Fj{j}_{t} \le -2$
+at the beginning of week $t$ then:
+\begin{equation}
+\Fj{j}_{t+1} = \left \{
+\begin{array}{ll}
+\Fj{j}_{t} & \mbox{with probability $_{j}\nu$}\\
+\Fj{j}_{t} + 1 & \mbox{with probability $1-\,_{j}\nu$}
+\end{array} \right . .
+\label{eq:moulting}
+\end{equation}
+Here $_{j}\nu$ controls the extent of stochasticity. If $\Fj{j}_{t} =
+-1$ the bird will deterministically have completely new feathers at
+the start of the next week i.e.\ $\Fj{j}_{t+1} = 1$.  A bird not
+moulting its feathers of type $j$ (i.e.\ $\Fj{j} \ge 0$) can choose
+between starting or not starting to moult. Starting moult results in
+an instantaneous change in the feathers' state at the beginning of
+week $t$, i.e.\ $\Fj{j}_{t} = -\,_{j}m_{length}$.  Then $\Fj{j}_{t+1}$
+will be given by equation (\ref{eq:moulting}).
+
+Feathers (given that they are not moulted, $\Fj{j} \ge 0$) deteriorate
+by an amount proportional to foraging intensity $u$:
+\begin{equation}
+  \label{eq:Pdelay}
+  \Fj{j}_{t+1} = \Fj{j}_{t} -\,_{j}f_{f} u .
+\end{equation} 
+
+The flight ability of a bird with feather qualities $\{\Fo,\Fi\}$
+compared to the flight ability of a bird with newly moulted feathers
+($\Fj{j}=1$, $j = \mbox{o},\mbox{i}$) is
+\begin{equation}
+  \label{eq:flight_eff}
+  \Wf(\Fo,\Fi)=\frac{\,_{\mbox{\small o}}\delta\df_{\mbox{\small
+    o}}(\Fo) +\,_{\mbox{\small i}}\delta\df_{\mbox{\small i}}(\Fi) +
+    \,_{\mbox{\small o,i}}\delta\df_{\mbox{\small
+    o}}(\Fo)\df_{\mbox{\small i}}(\Fi)}{_{\mbox{\small o}}\delta +
+    \,_{\mbox{\small i}}\delta + \,_{\mbox{\small o,i}}\delta} ,
+\end{equation}
+where 
+\begin{equation}
+  \label{eq:dj}
+  \df_j(\Fj{j}) = \left\{
+  \begin{array}{ll}
+    \,_{j}m_{A} + \Fj{j}^{_{j}\alpha} (1-\,_{j}m_{A}) & \mbox{if
+      $\Fj{j} \ge 0$}\\ 
+    \,_{j}m_{A} +
+    \left(\frac{\Fj{j}+\,_{j}m_{length}}{_{j}m_{length}}\right)
+    ^{_{j}\alpha} (1-\,_{j}m_{A}) & \mbox{if $\Fj{j} \le -1$}
+  \end{array}\right. .
+\end{equation}
+Decreasing feather quality decreases flight ability
+\citep{chai97:hummi,chai99:maxim,hedenstroem03:flyin,williams03:moult}.
+$_{j}\alpha$ describes the effects of feather quality and $_{j}m_{A}$
+characterises the flight ability of a bird with feathers in very poor
+condition (i.e. $\Fj{j} = 0$).
+
+
+\subsection{Energy intake}
+\label{sec:food-exper-reserv}
+
+The environmental food supply is given by
+\begin{equation}
+  \label{eq:env_food}
+  \Gf(t) = A_{food}+\epsilon \sin\left(\pi\frac{t-13}{26}\right).
+\end{equation}
+
+The scaled population size (a measure of competition) is the sum of
+individuals weighted by their foraging efficiency
+$\theta^{e_{max}-e}$:
+\begin{equation}
+  \label{eq:eff_pop}
+  n(t) = \sum N(\Fo,\Fi,e,a,r,t) \theta^{e_{max}-e},
+\end{equation}
+where $N(\Fo,\Fi,e,a,r,t)$ is the number of individuals in a given
+state at the beginning of week $t$ (the summation runs over all
+combinations of states).  The available food depends on the
+environmental supply and on the scaled population size $n(t)$. We take
+\begin{equation}
+  \label{eq:dens_food}
+  \gf(t) = \frac{1001 \Gf(t)}{1000 + n(t)}.
+\end{equation}
+
+If a bird has experience $e$ at the start of week $t$ it retains this
+experience at the beginning of the next week with probability $1-p_e$
+or improves to
+\begin{equation}
+e'=\min(e_{max},e+1) 
+\label{eq:e'}
+\end{equation}
+with probability $p_e$.  It follows that a fully experienced bird
+remains fully experienced.
+
+\subsection{Dynamics of energy reserves}
+\label{App:energy}
+
+The metabolic cost for a subsisting bird foraging with intensity $u$,
+and having feather quality $\Fj{j}$ ($j=\mbox{o},\mbox{i}$) and
+reserves $r$ is
+\begin{equation}
+  \label{eq:c_delay}
+  \cf_{subsist}(u,\Fo,\Fi,r) = \Sexpr{i.v["baseC"]} + \Sexpr{i.v["massC"]} r^2 +
+  \Uf(u,\Fo,\Fi, r) + \Delta_{m}(\Fo,\Fi) ,
+\end{equation}
+where the first two terms represent the reserve (and so mass)
+dependent basic metabolic cost \citep{aschoff70:bird_ener}. The
+energetic cost of foraging, $\Uf(u,\Fo,\Fi,r)$, increases with foraging
+intensity, $u$, and body mass (and hence reserves $r$) because
+foraging usually involves movement. Motivated by a bird which spends
+half of its foraging time in flight we take
+\begin{equation}
+  \label{eq:U}
+  \Uf(u,\Fo,\Fi,r) = u^2(1+0.1r^2)\left\{\Sexpr{i.v["fora"]*(1-i.v["propF"])} + 
+  \frac{\Sexpr{i.v["propF"]*i.v["def"]}}{\Wf(\Fo,\Fi)}\right\}, 
+\end{equation}
+where $\Wf(\Fo,\Fi)$ is given by equations (\ref{eq:flight_eff}) and
+(\ref{eq:dj}). The energetic cost of feather synthesis when the bird
+moults is
+\begin{equation}
+  \label{eq:delta_m}
+  \Delta_{m}(\Fo,\Fi) = \max(\,_{\mbox{\small o}}I,\,_{\mbox{\small
+  i}}I)\,_{\mbox{\small o,i}}\kappa + \,_{\mbox{\small o}}I\,_{\mbox{\small o}}\kappa +
+  \,_{\mbox{\small i}}I\,_{\mbox{\small i}}\kappa,
+\end{equation}
+where $_{j}I$ takes the value of $1$ if the bird moults feathers $j$
+and is otherwise zero. $_{\mbox{\small o,i}}\kappa$ represents the
+cost of some physiological machinery that must be formed for the
+synthesis of new feather material. This cost must be paid irrespective
+of how many feathers are being grown.  There is an additional cost,
+$_{j}\kappa$, for synthesising the feathers of type $j$.
+
+\setcounter{section}{2}
+\setcounter{subsection}{0}
+
+\section*{Appendix B: Dynamic programming}
+\label{App:B}
+
+
+\subsection{Notations}
+\label{sec:notations}
+
+The best strategy for given food availability maximises the expected
+number of descendants left in a target year sufficiently far in the
+future \citep{houston99:model}. We refer to this quantity as the
+payoff. Let $\ff_n(\Fo,\Fi, e, a, r, t)$
+denote the payoff of an individual in state $\{\Fo,\Fi, e, a, r\}$ at
+the beginning of week $t$, $n$ years before the target year.
+
+To simplify notation, we let $\Expect{}$ denote expectation (see
+below) and define\\ 
+$\ff_n^e(\Fo_{t},\Fi_{t}, e, a, r, t, action)$ as
+\begin{multline}
+  \label{eq:Ve}
+    \ff_n^e(\Fo_{t},\Fi_{t}, e, a, r, t,action) = \\
+    (1-p_e)\Expect{\ff_n(\Fo_{t+1},\Fi_{t+1}, e, a_{action}, r_{action}, t+1)}\\
+    +p_e\Expect{\ff_n(\Fo_{t},\Fi_{t}, e', a_{action}, r_{action}, t)}
+\end{multline}
+where $\Fj{j}_{t+1}$ and $e'$ are given by equations
+(\ref{eq:moulting})-(\ref{eq:Pdelay}) and (\ref{eq:e'}),
+respectively. Here $action$ can take `subsist', `start' and `care',
+and $r_{action}$ is given by equations
+\eqref{eq:rdelay}-\eqref{eq:rcare}. $a_{action}$ is defined as
+follows:
+
+ \begin{equation}
+   \label{eq:a-action}
+   a_{action} = \left\{
+   \begin{array}{cc}
+     0 & \mbox{if $action$ is `subsist'}\\
+     1 & \mbox{if $action$ is `start'}\\
+     a+1 & \mbox{if $action$ is `care'}
+   \end{array}\right . .
+ \end{equation}
+
+ The change in energy reserves is stochastic because of the four-point
+ grid interpolation as in \citet{houston99:model}. The change in
+ feather quality is also stochastic because of two-point (linear) grid
+ interpolation \citep{houston99:model}. The expectation $\mathsf{E}$
+ in equation \eqref{eq:Ve} is an average over these sources of
+ stochasticity.
+
+
+\subsection{Dynamic programing equations}
+\label{sec:dynam-progr-equat}
+
+First, suppose a bird is not starting to moult.  If the bird has no
+brood and subsists then its payoff depends on its foraging intensity
+$u$:
+\begin{equation}
+  H_{subsist}(u) = [1-\Mf(u,r,\,\Fo,\Fi)] \ff_n^e(\Fo_{t},\Fi_{t},
+  e, 0, r, t, subsist)
+\end{equation}
+where $\ff_n^e$ is given by equation~\eqref{eq:Ve} with
+$action=$``$subsist$'' and $r_{subsist}$ given by
+equation~\eqref{eq:rdelay}.  The maximum payoff given that the
+non-moulting bird subsists is
+\begin{equation}
+H_{subsist}^* = \max_{0\le u \le 1} H_{subsist}(u).
+\end{equation}
+
+Suppose the bird starts a new brood. Then, given that it forages with
+intensity $u$, its payoff will be
+\begin{equation}
+  H_{start}(u) =
+  [1-\Mf(u,r,\,\Fo,\Fi)]\ff_n^e(\Fo_{t},\Fi_{t}, e,
+  1,r, t, start).
+\end{equation}
+Here $r_{start}$ is given by equation (\ref{eq:rstart}). The maximum
+payoff is
+\begin{equation}
+  H_{start}^* = \max_{0\le u  \le 1} H_{start}(u). 
+\end{equation}
+
+When the bird currently cares for a brood ($0 < a < a_{max}$) it
+can either continue to care or desert. If it continues it must
+forage with intensity $u\ge u_{crit}(e,t)$ and its payoff is
+\begin{equation}
+  H_{care}(u) = [1-\Mf(u,r,\,\Fo,\Fi)]
+  \ff_n^e(\Fo_{t},\Fi_{t}, e, a+1, r, t, care),
+\end{equation}
+where $r_{care}$ is given by equation (\ref{eq:rcare}). The maximum
+payoff is given by
+\begin{equation}
+  H_{care}^* = \max_{u_{crit}   \le u \le 1}H_{care}(u) 
+\end{equation}
+where $u_{crit}(e,t) \le 1$. If $u_{crit}>1$ we set $H_{care}^* =
+0$.
+
+The maximum payoff for a non-moulting bird
+$^{0}\ff_n(\Fo,\Fi,e,a,r,t)$ is then given by
+\begin{equation}
+  \begin{array}{lr}
+    ^{0}\ff_n(\Fo,\Fi, e, 0, r, t) = 0 & \mbox{for $r=0$}\\
+  \end{array}
+\end{equation}
+\begin{equation}
+  \begin{array}{lr}
+    ^{0}\ff_n(\Fo,\Fi, e, a, r, t) = \max(H_{subsist}^*, H_{start}^*)
+    & (r > 0).
+  \end{array}
+\end{equation}
+If the brood is deserted it dies and the bird is assumed to subsist
+during that week. Thus
+\begin{equation}
+  ^{0}\ff_n(\Fo,\Fi, e, a, r, t) = \max(H_{subsist}^*, H_{care}^*).
+\end{equation}
+Finally, let $r>0$ and $a=a_{max}$ at the beginning of week $t$. Then
+the bird is forced to abandon the brood immediately and subsist during the
+following week, so that  
+\begin{equation}
+  ^{0}\ff_n(\Fo,\Fi, e, a_{max}, r, t) = n_{brood}\ff_n(1, 1, 0, 0, 0.5,
+  t) + H_{subsist}^* ,
+\end{equation}
+since $n_{brood}$ young of value $\ff_n(1,1, 0, 0, 0.5, t)$ become
+independent at $t$.
+
+We now consider a bird starting to moult.  Because starting moult
+involves an instantaneous change in the feathers' state the payoff for
+a bird starting to moult its outer primaries is
+\begin{equation}
+  \label{eq:m_prim}
+  ^{\mbox{\small o}}H = \,^{0}\ff_n(-\,_{\mbox{\small
+  o}}m_{length},\Fi,e,a,r,t).
+\end{equation}
+The payoff for the bird starting to moult its inner primaries,
+$^{\mbox{\small i}}H$, is similarly defined.  The payoff for starting
+to moult both types of feathers is
+\begin{equation}
+  \label{eq:m_both}
+  ^{\mbox{\small o,i}}H = \,^{0}\ff_n(-\,_{\mbox{\small o}}m_{length},
+  -\,_{\mbox{\small i}}m_{length},e,a,r,t).
+\end{equation}
+
+The maximum payoff of a bird in state $(\Fo,\Fi,e,a,r)$
+at the beginning of week $t$ is
+\begin{equation}
+  \label{eq:payoff}
+  \ff_n(\Fo,\Fi,e,a,r,t) = max\left(H,\,^{\mbox{\small
+  o}}H,\,^{\mbox{\small i}}H,\,
+  ^{\mbox{\small o,i}}H\right),
+\end{equation}
+where $H = \,^{0}\ff_n(\Fo,\Fi,e,a,r,t)$.
+
+
+To compute $\ff_n$ as well as the optimal decisions for all states,
+weeks and $n$ we need the terminal condition:
+\begin{equation}
+\begin{array}{cc}
+\ff_0(\Fo,\Fi, e, a, r, 52) = 1 & \mbox{for $r>0$},
+\end{array}
+\end{equation}
+and the wrap-around condition:
+\begin{equation}
+\ff_n(\Fo,\Fi, e, a, r, 52) = \Hat{\ff}_{n-1}(\Fo,\Fi, e, a, r, 0).
+\end{equation}
+Here $\Hat{\ff}_{n-1}(\Fo,\Fi,e,a,r,0)$ is a renormalisation of
+$\ff_{n-1}(\Fo,\Fi, e,a,r,0)$ so that 
+\begin{equation}
+  \label{eq:renorm}
+  \max[\Hat{\ff}_{n-1}(\Fo,\Fi, e, a, r,0)] = 1
+\end{equation}
+(maximisation runs over all states).  Computations are stopped when
+\begin{equation}
+\sum \left |\Hat{\ff}_{n+1}(\Fo,\Fi,e,a,r,0) -
+\Hat{\ff}_n(\Fo,\Fi,e,a,r,0) \right | < 0.001 
+\end{equation}
+i.e.\ when the optimal annual routine settles down (summation runs
+over all states). All computations were run using a 13 by (11+6) by
+(11+6) grid for the reserves and the qualities of feathers,
+respectively (the first part of the sums is the grid for the unmoulted
+feathers, while the second one is for the moulted feathers).
+
+\newpage 
+
+\bibliography{/home/mazb/lib/bib_files/cikkek}
+
+\newpage
+
+\begin{longtable}{p{4in}lcc}
+  \caption{\label{tab:params}The model's parameters and their baseline
+    values. Where two values are given the first one shows the value
+    of outer primaries while the second one those of inner
+    primaries. All energetic value given as the proportion of the
+    bird's maximum fuel storage capacity.}\\
+  \hline \hline
+  Parameter & Symbol & \multicolumn{2}{c}{Value}\\
+  \hline \hline \endfirsthead
+        \caption{continue}\\
+        \hline \hline
+        Parameter & Symbol & \multicolumn{2}{c}{Value}\\
+        \hline \hline \endhead \hline \hline \endfoot 
+        Length of moulting period & $_{j}m_{length}$ &
+         \Sexpr{-i.v["MO"]} & \Sexpr{-i.v["MO"]} \\ 
+         The effect of foraging intensity on feathers' abrasion &
+         $_{j}f_{f}$ & \Sexpr{i.v["P.fora"]} & \Sexpr{i.v["S.fora"]}\\
+%         The effect of moulting the other type of feathers on abrasion
+%         & $_{j}f_{m}$ & \Sexpr{i.v["P.moult"]} & \Sexpr{i.v["S.moult"]}\\
+%          The effect of migration on the feathers' abrasion & $f_{m}$
+%          & \Sexpr{i.v["P.migra"]} & \Sexpr{i.v["S.migra"]}\\
+%         The difference between poor quality feathers and moulting
+%         feathers & $_{j}m_{M}$ & \Sexpr{i.v["P.moulted"]} &
+%         \Sexpr{i.v["S.moulted"]}\\ 
+         The effect of feather quality on flight efficiency &
+         $_{j}\delta$ & \Sexpr{i.v["P.def_coef"]} &
+         \Sexpr{i.v["S.def_coef"]}\\ 
+         The interaction effect of feather quality on flight ability
+         & $_{\mbox{\small o,i}}\delta$ &
+         \multicolumn{2}{c}{\Sexpr{i.v["dfeint"]}}\\ 
+         The flight ability for very worn feathers  &
+         $_{j}m_{A}$ & \Sexpr{i.v["P.worn"]} & \Sexpr{i.v["S.worn"]}\\
+         The description of feather quality effects &
+         $_{j}\alpha$ & \Sexpr{i.v["P.flight"]} & \Sexpr{i.v["S.flight"]}\\
+         Energy cost of moulting feathers $i$ & $_{j}\kappa$ &
+         \Sexpr{i.v["moult1"]} & \Sexpr{i.v["moult2"]}\\
+         The interaction cost of moulting both type of feathers &
+         $_{\mbox{\small o,i}}\kappa$ &
+         \multicolumn{2}{c}{\Sexpr{i.v["moint"]}}\\ 
+         The extent of stochasticity in moult length & $_{j}\nu$ &
+         \Sexpr{i.v["P.NU"]} & \Sexpr{i.v["S.NU"]}\\
+%          Basic metabolic cost & $c_b$ &
+%          \multicolumn{2}{c}{\Sexpr{i.v["baseC"]}}\\ 
+%          Reserve dependent cost & $c_r$ &
+%          \multicolumn{2}{c}{\Sexpr{i.v["massC"]}}\\ 
+%          Cost of foraging on feet & $c_u$ &
+%          \multicolumn{2}{c}{\Sexpr{i.v["fora"]}}\\ 
+%          Increase in foraging cost if the bird forages with feathers
+%          in poor condition & $c_f$ & \multicolumn{2}{c}{\Sexpr{i.v["def"]}}\\
+%         Importance of flight during foraging & $p_F$ &
+%         \multicolumn{2}{c}{\Sexpr{i.v["propF"]}}\\ 
+%         Energy cost of migrating & $\Delta_m$ &
+%         \multicolumn{2}{c}{\Sexpr{i.v["migra"]}}\\ 
+         Cost of starting a new brood & $\Delta_s$ &
+         \multicolumn{2}{c}{\Sexpr{i.v["start"]}}\\ 
+         Gross intake needed to provide nestling & $\gamma_{brood}$ &
+         \multicolumn{2}{c}{\Sexpr{i.v["keep"]}}\\ 
+         Background mortality & $M_b$ &
+         \multicolumn{2}{c}{0.0005}\\ %\Sexpr{as.character(i.v["baseP"])}
+         Reserve dependent predation hazard & $M_f$ &
+         \multicolumn{2}{c}{\Sexpr{i.v["massP"]}}\\ 
+         Foraging efficiency of inexperienced birds & $\theta$ &
+         \multicolumn{2}{c}{\Sexpr{i.v["THETA"]}}\\ 
+         The extent of seasonality of food  & $\epsilon$ &
+         \multicolumn{2}{c}{\Sexpr{i.v["MAXEPS"]}}\\ 
+         The average amount of food available & $A_{food}$ &
+         \multicolumn{2}{c}{\Sexpr{i.v["FOOD"]}}\\ 
+         The maximal experience level & $e_{max}$ &
+         \multicolumn{2}{c}{\Sexpr{i.v["ME"]}}\\ 
+         Probability of increasing experience & $p_e$ &
+         \multicolumn{2}{c}{\Sexpr{i.v["pe"]}}\\ 
+         Maximum age of brood & $a_{max}$ &
+         \multicolumn{2}{c}{\Sexpr{i.v["MA"]}}\\ 
+         Number of female young at abandonment & $n_{brood}$ &
+         \multicolumn{2}{c}{\Sexpr{i.v["n"]}}\\  
+%         Strength of density dependence & $N_{0}$ &
+%         \multicolumn{2}{c}{\Sexpr{i.v["N0"]}}\\ 
+\end{longtable}
+
+\newpage
+
+
+
+ \begin{table}[h]
+   \caption{The effects of asymmetry in different feather parameters 
+     on the average starting date of moult of inner and outer primaries and the
+     proportion of different moult sequences. Asymmetries
+     were introduced so that the quality of outer primaries has the greater
+     effect on flight ability, they abrade faster, or their energetic cost
+     of moult is larger. For the line denoted by
+     ``none'' the optimal strategy was determined for the baseline
+     values (Table~\ref{tab:params}), except that parameters of
+     feathers were equal to the means of values given in
+     Table~\ref{tab:params}. The ``Difference'' column gives the
+     difference in value between the outer and inner primaries for the
+     given parameter. The actual values of these parameters were such
+     that their mean was equal to the baseline values. The feathers
+     differed only in one parameter in each of these runs.}
+   \label{tab:sequence}
+   \centering
+   \begin{tabular}{crrrrrr}
+     \hline\hline
+     \multicolumn{2}{c}{Asymmetry} & 
+     \multicolumn{2}{c}{Time of moult of} &
+     \multicolumn{2}{c}{Proportion of }\\ 
+     Symbol & Difference & inner prim. & outer prim. & \rout{io} &
+     \rout{oi} \\
+     \hline
+     none & 
+     \Sexpr{p.tran(c(M.as[1,as.n[1]],round(t.as[1,c("t.m2","t.m1","sp","ps")],2)))}\\
+     $_{j}\delta$ &
+     \Sexpr{p.tran(c(M.as[3,as.n[3]],round(t.as[3,c("t.m2","t.m1","sp","ps")],2)))}\\
+     $_{j}m_{A}$ &
+     \Sexpr{p.tran(c(M.as[4,as.n[4]],round(t.as[4,c("t.m1","t.m2","ps","sp")],2)))}\\
+     $_{j}\alpha$ &
+     \Sexpr{p.tran(c(M.as[5,as.n[5]],round(t.as[5,c("t.m2","t.m1","sp","ps")],2)))}\\
+     $_{j}f_{f}$ &
+     \Sexpr{p.tran(c(M.as[6,as.n[6]],round(t.as[6,c("t.m2","t.m1","sp","ps")],2)))}\\
+     $_{j}\kappa$ &
+     \Sexpr{p.tran(c(M.as[2,as.n[2]],round(t.as[2,c("t.m2","t.m1","sp","ps")],2)))}\\
+     \hline\hline
+   \end{tabular}
+ \end{table}
+
+
+\newpage
+
+\section*{Figure Legends}
+
+Figure \ref{fig:behav_bl}.  The baseline case. (a) The behaviour of
+modelled birds as a function of time.  (b) The average state of birds.
+When birds moult, feather qualities (dashed and dotted lines) fall
+below zero. (c) The reproductive value of the newly fledged young as
+function of time (solid line) and the proportion of individuals dying
+during a given week (dashed line). (d) The effect of feather quality
+on \co[T]{}{adults'} reproductive value at $t=0$ (winter) and $t=26$
+(summer).  Plots are based on the second year of the Monte Carlo
+simulation. \\
+
+
+Figure \ref{fig:MAXEPS}. The effects of seasonal variation of food,
+$\epsilon$, on (a) the diversity of routines, (b) the average number
+of events, (c) the average timing of events, and (d) proportion of
+brood desertion and adult mortality.  $A_{food} = 2.2$, all other
+parameters except $\epsilon$ were kept at their baseline values. The
+stars at the top of the panels marks those cases where no stable
+solution was found (i.e.\ the population cycles). In panel (a) for
+simplicity we ignored the order of moult and so \rout{m} and \rout{mm}
+mean an incomplete moult and a complete moult, respectively; \rout{n}
+indicates no breeding and moult in the given year, while the label
+\rout{other} covers complicated routines  (e.g. \rout{BiB}).  \\
+
+<<label=eps-to-plot>>=
+etp <- function(i) {
+  paste("(",letters[i],"): $\\\\epsilon = ",eps.to.plot[9-i],"$",sep="");
+}
+@ 
+
+Figure \ref{fig:MAXEPS-behav}. An illustration of the variability of
+annual routines at different values of seasonality, $\epsilon$.
+(a)-(d) and (e)-(h) the four most frequent routines when $\epsilon =
+0.05$ and $\epsilon = 0.4$, respectively.  (i), (j) and (k) the most
+frequent routines when $\epsilon = 1.3, 1.4,$ and $1.5$. $A_{food} =
+2.2$, all other
+parameters except $\epsilon$ were kept at their baseline values. \\
+
+Figure \ref{fig:food.patt}. The effects of increasing mean food supply
+$A_{food}$ on (a) the density of foragers and (b) the amount of food
+available for a given individual $\gf(t)$.  (c) The effect of the
+quality of feathers on the optimal routine when $A_{food} = 2.0$. The
+crosses of the horizontal and vertical error bars mark the average
+qualities of inner and outer primaries at week ten for individuals
+following different routines (denoted by the letters at the middle of
+the crosses).  The error bars mark $\pm 1 \mbox{SD}$. \rout{B} denotes
+breeding, \rout{i} denotes moulting inner primaries, and \rout{o}
+denotes moulting outer primaries. Parameters as in baseline case
+except the amount of food. \\
+
+Figure \ref{fig:bgr_mort}. The effects of increasing background
+mortality $M_b$ on (a) the number of breeding attempts per year, and
+(b) the starting time of the first breeding attempt, in each case for
+three levels of seasonality, ($\epsilon = 0.5, 0.9, 1.3$). Other
+parameters are as baseline values.  Averages were only calculated for
+birds surviving the whole year of the simulation.\\
+
+\psfrag{a}[c][c]{(a)}
+\psfrag{b}[c][c]{(b)}
+\psfrag{c}[c][c]{(c)}
+\psfrag{d}[c][c]{(d)}
+\psfrag{e}[c][c]{(e)}
+\psfrag{f}[c][c]{(f)}
+\psfrag{g}[c][c]{(g)}
+\psfrag{h}[c][c]{(h)}
+\psfrag{i}[c][c]{(i)}
+\psfrag{j}[c][c]{(j)}
+\psfrag{k}[c][c]{(k)}
+
+\psfrag{time}[c][c]{Week, $t$}
+
+% \psfrag{week}[c][c]{Week, $t$}
+% \psfrag{number of broods}[c][c]{No. of broods}
+% \psfrag{number of moulting outer P}[c][c]{No. of outer primaries moult}
+% \psfrag{number of moulting inner P}[c][c]{No. of inner primaries moult}
+% \psfrag{time of broods}[c][c]{Time of starting broods}
+% \psfrag{time of moulting outer P}[c][c]{Time of outer
+%   primaries moult}
+% \psfrag{time of moulting inner P}[c][c]{Time of inner
+%   primaries moult}
+
+\psfrag{proportions}[c][c]{Proportion}
+\psfrag{proportion}[c][c]{Proportion}
+\psfrag{Proportion}[c][c]{Proportion}
+
+
+%% \begin{figure}[p]
+%%   \begin{center}
+%%                                 %    \refstepcounter{figure}
+%%     \caption{}
+%% %   this figure is generated by MetaPost using file moult_types.mp
+%%     \includegraphics{moult_types}
+%%     \label{fig:moult_types}
+%%   \end{center}
+%% \end{figure}
+
+\psfrag{breeding}[l][l]{\footnotesize breeding}
+\psfrag{moult outer}[l][l]{\footnotesize moult outer}
+\psfrag{moult inner}[l][l]{\footnotesize moult inner}
+\psfrag{foraging}[l][l]{\footnotesize foraging}
+\psfrag{u val}[l][l]{\footnotesize foraging}
+
+\begin{figure}[p]
+  \psfrag{reserves}[l][l]{\footnotesize reserves}
+  \psfrag{outer prim.}[l][l]{\footnotesize outer prim.}
+  \psfrag{inner prim.}[l][l]{\footnotesize inner prim.}
+  \psfrag{adult mortality}[l][l]{\footnotesize adult mort.}
+  \psfrag{reproductive value}[l][l]{\footnotesize repr. value}
+  \psfrag{Outer, winter}[l][l]{\footnotesize outer prim.: winter}
+  \psfrag{Outer, summer}[l][l]{\footnotesize outer prim.: summer}
+  \psfrag{Inner, winter}[l][l]{\footnotesize inner prim.: winter}
+  \psfrag{Inner, summer}[l][l]{\footnotesize inner prim.: summer}
+  \psfrag{Proportion}[c][c]{Proportion}
+  \psfrag{State}[c][c]{State}
+  \psfrag{Number of states}[c][c]{Number of states}
+  \psfrag{Reproductive value}[c][c]{Reproductive value}
+  \psfrag{repval}[c][c]{Reproductive value}
+  \psfrag{outer}[c][c]{Feather quality}
+  \psfrag{Mortality}[c][c]{Mortality}
+  \centering
+  \caption{Barta et al.}
+  \includegraphics{fig_behav_bl}
+  \label{fig:behav_bl}
+\end{figure}
+
+
+
+\begin{figure}[p]
+  \psfrag{maxeps}[c][c]{$\epsilon$}
+  \psfrag{epsilon}[c][c]{$\epsilon$}
+  \psfrag{number of events}[c][c]{No. of events per year}
+  \psfrag{time of events}[c][c]{Timing of events (week)}
+  \psfrag{nest desertion}[l][l]{\footnotesize nest desertion}
+  \psfrag{mortality}[l][l]{\footnotesize annual mortality}
+  \centering
+  \caption{Barta et al.}
+  \includegraphics{fig_MAXEPS}
+  \label{fig:MAXEPS}
+\end{figure}
+
+\psfrag{week}[c][c]{Week, $t$}
+
+\begin{figure}[p]
+  \centering
+  \caption{Barta et al.}
+  \includegraphics{fig_MAXEPS_behav}
+  \label{fig:MAXEPS-behav}
+\end{figure}
+
+\begin{figure}[p]
+  \psfrag{Density of foragers}[c][c]{Density of foragers}
+  \psfrag{Amount of food}[c][c]{Amount of food}
+  \psfrag{Quality of inner primaries}[c][c]{Quality of inner primaries}
+  \psfrag{Quality of outer primaries}[c][c]{Quality of outer primaries}
+  \centering
+  \caption{Barta et al.}
+  \includegraphics{fig_food_patt}
+  \label{fig:food.patt}
+\end{figure}
+
+\begin{figure}[p]
+  \psfrag{background mortality}[c][c]{Background mortality, $M_b$}
+  \psfrag{Number of breedings}[c][c]{Number of breeding attempts}
+  \psfrag{Time of first breedings}[c][c]{Time of first breeding (week)}
+  \centering
+  \caption{Barta et al.}
+  \includegraphics{fig_bgr_mort}
+  \label{fig:bgr_mort}
+\end{figure}
+
+
+
+
+
+
+
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 

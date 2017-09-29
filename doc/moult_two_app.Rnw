@@ -1,0 +1,396 @@
+% -*- mode: noweb; noweb-default-code-mode: R-mode; -*-
+
+\documentclass[12pt, a4paper]{article}
+
+\usepackage{/home/apa/lib/texinputs/ms_geom}
+\usepackage{amsmath}
+\usepackage{psfrag}
+\usepackage{graphicx}
+%\usepackage{epstopdf}
+\usepackage{longtable}
+\usepackage{natbib}
+\usepackage{type1cm}
+%\usepackage{Sweave}
+
+\DeclareMathOperator{\chop}{chop}
+\DeclareMathOperator{\cf}{C}
+\DeclareMathOperator{\gammaf}{\gamma}
+\DeclareMathOperator{\gf}{g}
+\DeclareMathOperator{\Gf}{G}
+\DeclareMathOperator{\Mf}{M}
+\DeclareMathOperator{\mf}{m}
+\DeclareMathOperator{\ff}{V}
+\DeclareMathOperator{\Wf}{E}
+\DeclareMathOperator{\Uf}{U}
+\DeclareMathOperator{\Af}{A}
+\DeclareMathOperator{\df}{d}
+
+\newcommand{\rout}[1]{`\texttt{#1}'}
+\newcommand{\Fo}{\ensuremath{\,_{\mbox{\small o}}\mbox{F}}}
+\newcommand{\Fi}{\ensuremath{\,_{\mbox{\small i}}\mbox{F}}}
+\newcommand{\Fj}[1]{\ensuremath{\,_{\mbox{\small #1}}\mbox{F}}}
+\newcommand{\Expect}[1]{\ensuremath{\mathsf{E}\left\{#1\right\}}}
+
+%\renewcommand{\co}[3][]{\margo{#1}#3}
+
+\title{Annual routines of non-migratory birds: optimal moult strategies}
+
+\begin{document}
+
+\bibliographystyle{/home/mazb/lib/texinputs/AmNat}
+
+\SweaveOpts{echo=FALSE,eval=TRUE,results=hide,term=FALSE,debug=TRUE}
+
+%\maketitle
+
+
+
+\setcounter{section}{1}
+\renewcommand{\thesection}{\Alph{section}}
+
+%\setcounter{section}{1}
+%\setcounter{subsection}{0}
+\section*{Appendix A State variables and their dynamics}
+\label{App:A}
+
+\setcounter{equation}{0}
+\renewcommand{\theequation}{A \arabic{equation}}
+
+The bird's state is given by five state variables: quality of its
+feathers (\Fo\ and \Fi), experience $e$, age of the brood $a$ and
+energy reserves $r$.  
+
+
+\subsection{Feathers and moult}
+\label{sec:feather-dynamic}
+
+\Fo\ and \Fi\ represent the quality of outer and inner primaries,
+respectively. Both feather quality variables can vary (in steps of
+$1/10$) between $0$ (very poor) and $1$ (newly moulted).  \Fj{j} can
+also take negative integer values ($-_{j}m_{length} \le \Fj{j} \le
+-1$) to signal that moult is in progress.  The quality of feathers
+changes as follows.  If the bird is moulting with $\Fj{j}_{t} \le -2$
+at the beginning of week $t$ then:
+\begin{equation}
+\Fj{j}_{t+1} = \left \{
+\begin{array}{ll}
+\Fj{j}_{t} & \mbox{with probability $_{j}\nu$}\\
+\Fj{j}_{t} + 1 & \mbox{with probability $1-\,_{j}\nu$}
+\end{array} \right . .
+\label{eq:moulting}
+\end{equation}
+Here $_{j}\nu$ controls the extent of stochasticity. If $\Fj{j}_{t} =
+-1$ the bird will deterministically have completely new feathers at
+the start of the next week i.e.\ $\Fj{j}_{t+1} = 1$.  A bird not
+moulting its feathers of type $j$ (i.e.\ $\Fj{j} \ge 0$) can choose
+between starting or not starting to moult. Starting moult results in
+an instantaneous change in the feathers' state at the beginning of
+week $t$, i.e.\ $\Fj{j}_{t} = -\,_{j}m_{length}$.  Then $\Fj{j}_{t+1}$
+will be given by equation (\ref{eq:moulting}).
+
+Feathers (given that they are not moulted, $\Fj{j} \ge 0$) deteriorate
+by an amount proportional to foraging intensity $u$:
+\begin{equation}
+  \label{eq:Pdelay}
+  \Fj{j}_{t+1} = \Fj{j}_{t} -\,_{j}f_{f} u .
+\end{equation} 
+
+The flight ability of a bird with feather qualities $\{\Fo,\Fi\}$
+compared to the flight ability of a bird with newly moulted feathers
+($\Fj{j}=1$, $j = \mbox{o},\mbox{i}$) is
+\begin{equation}
+  \label{eq:flight_eff}
+  \Wf(\Fo,\Fi)=\frac{\,_{\mbox{\small o}}\delta\df_{\mbox{\small
+    o}}(\Fo) +\,_{\mbox{\small i}}\delta\df_{\mbox{\small i}}(\Fi) +
+    \,_{\mbox{\small o,i}}\delta\df_{\mbox{\small
+    o}}(\Fo)\df_{\mbox{\small i}}(\Fi)}{_{\mbox{\small o}}\delta +
+    \,_{\mbox{\small i}}\delta + \,_{\mbox{\small o,i}}\delta} ,
+\end{equation}
+where 
+\begin{equation}
+  \label{eq:dj}
+  \df_j(\Fj{j}) = \left\{
+  \begin{array}{ll}
+    \,_{j}m_{A} + \Fj{j}^{_{j}\alpha} (1-\,_{j}m_{A}) & \mbox{if
+      $\Fj{j} \ge 0$}\\ 
+    \,_{j}m_{A} +
+    \left(\frac{\Fj{j}+\,_{j}m_{length}}{_{j}m_{length}}\right)
+    ^{_{j}\alpha} (1-\,_{j}m_{A}) & \mbox{if $\Fj{j} \le -1$}
+  \end{array}\right. .
+\end{equation}
+Decreasing feather quality decreases flight ability
+\citep{chai97:hummi,chai99:maxim,hedenstroem03:flyin,williams03:moult}.
+$_{j}\alpha$ describes the effects of feather quality and $_{j}m_{A}$
+characterises the flight ability of a bird with feathers in very poor
+condition (i.e. $\Fj{j} = 0$).
+
+
+\subsection{Energy intake}
+\label{sec:food-exper-reserv}
+
+The environmental food supply is given by
+\begin{equation}
+  \label{eq:env_food}
+  \Gf(t) = A_{food}+\epsilon \sin\left(\pi\frac{t-13}{26}\right).
+\end{equation}
+
+The scaled population size (a measure of competition) is the sum of
+individuals weighted by their foraging efficiency
+$\theta^{e_{max}-e}$:
+\begin{equation}
+  \label{eq:eff_pop}
+  n(t) = \sum N(\Fo,\Fi,e,a,r,t) \theta^{e_{max}-e},
+\end{equation}
+where $N(\Fo,\Fi,e,a,r,t)$ is the number of individuals in a given
+state at the beginning of week $t$ (the summation runs over all
+combinations of states).  The available food depends on the
+environmental supply and on the scaled population size $n(t)$. We take
+\begin{equation}
+  \label{eq:dens_food}
+  \gf(t) = \frac{1001 \Gf(t)}{1000 + n(t)}.
+\end{equation}
+
+If a bird has experience $e$ at the start of week $t$ it retains this
+experience at the beginning of the next week with probability $1-p_e$
+or improves to
+\begin{equation}
+e'=\min(e_{max},e+1) 
+\label{eq:e'}
+\end{equation}
+with probability $p_e$.  It follows that a fully experienced bird
+remains fully experienced.
+
+\subsection{Dynamics of energy reserves}
+\label{App:energy}
+
+The metabolic cost for a subsisting bird foraging with intensity $u$,
+and having feather quality $\Fj{j}$ ($j=\mbox{o},\mbox{i}$) and
+reserves $r$ is
+\begin{equation}
+  \label{eq:c_delay}
+  \cf_{subsist}(u,\Fo,\Fi,r) = \Sexpr{i.v["baseC"]} + \Sexpr{i.v["massC"]} r^2 +
+  \Uf(u,\Fo,\Fi, r) + \Delta_{m}(\Fo,\Fi) ,
+\end{equation}
+where the first two terms represent the reserve (and so mass)
+dependent basic metabolic cost \citep{aschoff70:bird_ener}. The
+energetic cost of foraging, $\Uf(u,\Fo,\Fi,r)$, increases with foraging
+intensity, $u$, and body mass (and hence reserves $r$) because
+foraging usually involves movement. Motivated by a bird which spends
+half of its foraging time in flight we take
+\begin{equation}
+  \label{eq:U}
+  \Uf(u,\Fo,\Fi,r) = u^2(1+0.1r^2)\left\{\Sexpr{i.v["fora"]*(1-i.v["propF"])} + 
+  \frac{\Sexpr{i.v["propF"]*i.v["def"]}}{\Wf(\Fo,\Fi)}\right\}, 
+\end{equation}
+where $\Wf(\Fo,\Fi)$ is given by equations (\ref{eq:flight_eff}) and
+(\ref{eq:dj}). The energetic cost of feather synthesis when the bird
+moults is
+\begin{equation}
+  \label{eq:delta_m}
+  \Delta_{m}(\Fo,\Fi) = \max(\,_{\mbox{\small o}}I,\,_{\mbox{\small
+  i}}I)\,_{\mbox{\small o,i}}\kappa + \,_{\mbox{\small o}}I\,_{\mbox{\small o}}\kappa +
+  \,_{\mbox{\small i}}I\,_{\mbox{\small i}}\kappa,
+\end{equation}
+where $_{j}I$ takes the value of $1$ if the bird moults feathers $j$
+and is otherwise zero. $_{\mbox{\small o,i}}\kappa$ represents the
+cost of some physiological machinery that must be formed for the
+synthesis of new feather material. This cost must be paid irrespective
+of how many feathers are being grown.  There is an additional cost,
+$_{j}\kappa$, for synthesising the feathers of type $j$.
+
+\setcounter{section}{2}
+\setcounter{subsection}{0}
+
+\section*{Appendix B: Dynamic programming}
+\label{App:B}
+
+
+\subsection{Notations}
+\label{sec:notations}
+
+The best strategy for given food availability maximises the expected
+number of descendants left in a target year sufficiently far in the
+future \citep{houston99:model}. We refer to this quantity as the
+payoff. Let $\ff_n(\Fo,\Fi, e, a, r, t)$
+denote the payoff of an individual in state $\{\Fo,\Fi, e, a, r\}$ at
+the beginning of week $t$, $n$ years before the target year.
+
+To simplify notation, we let $\Expect{}$ denote expectation (see
+below) and define\\ 
+$\ff_n^e(\Fo_{t},\Fi_{t}, e, a, r, t, action)$ as
+\begin{multline}
+  \label{eq:Ve}
+    \ff_n^e(\Fo_{t},\Fi_{t}, e, a, r, t,action) = \\
+    (1-p_e)\Expect{\ff_n(\Fo_{t+1},\Fi_{t+1}, e, a_{action}, r_{action}, t+1)}\\
+    +p_e\Expect{\ff_n(\Fo_{t+1},\Fi_{t+1}, e', a_{action}, r_{action}, t+1)}
+\end{multline}
+where $\Fj{j}_{t+1}$ and $e'$ are given by equations
+(\ref{eq:moulting})-(\ref{eq:Pdelay}) and (\ref{eq:e'}),
+respectively. Here $action$ can take `subsist', `start' and `care',
+and $r_{action}$ is given by equations
+\eqref{eq:rdelay}-\eqref{eq:rcare}. $a_{action}$ is defined as
+follows:
+
+ \begin{equation}
+   \label{eq:a-action}
+   a_{action} = \left\{
+   \begin{array}{cc}
+     0 & \mbox{if $action$ is `subsist'}\\
+     1 & \mbox{if $action$ is `start'}\\
+     a+1 & \mbox{if $action$ is `care'}
+   \end{array}\right . .
+ \end{equation}
+
+ The change in energy reserves is stochastic because of the four-point
+ grid interpolation as in \citet{houston99:model}. The change in
+ feather quality is also stochastic because of two-point (linear) grid
+ interpolation \citep{houston99:model}. The expectation $\mathsf{E}$
+ in equation \eqref{eq:Ve} is an average over these sources of
+ stochasticity.
+
+
+\subsection{Dynamic programing equations}
+\label{sec:dynam-progr-equat}
+
+First, suppose a bird is not starting to moult.  If the bird has no
+brood and subsists then its payoff depends on its foraging intensity
+$u$:
+\begin{equation}
+  H_{subsist}(u) = [1-\Mf(u,r,\,\Fo,\Fi)] \ff_n^e(\Fo_{t},\Fi_{t},
+  e, 0, r, t, subsist)
+\end{equation}
+where $\ff_n^e$ is given by equation~\eqref{eq:Ve} with
+$action=$``$subsist$'' and $r_{subsist}$ given by
+equation~\eqref{eq:rdelay}.  The maximum payoff given that the
+non-moulting bird subsists is
+\begin{equation}
+H_{subsist}^* = \max_{0\le u \le 1} H_{subsist}(u).
+\end{equation}
+
+Suppose the bird starts a new brood. Then, given that it forages with
+intensity $u$, its payoff will be
+\begin{equation}
+  H_{start}(u) =
+  [1-\Mf(u,r,\,\Fo,\Fi)]\ff_n^e(\Fo_{t},\Fi_{t}, e,
+  1,r, t, start).
+\end{equation}
+Here $r_{start}$ is given by equation (\ref{eq:rstart}). The maximum
+payoff is
+\begin{equation}
+  H_{start}^* = \max_{0\le u  \le 1} H_{start}(u). 
+\end{equation}
+
+When the bird currently cares for a brood ($0 < a < a_{max}$) it
+can either continue to care or desert. If it continues it must
+forage with intensity $u\ge u_{crit}(e,t)$ and its payoff is
+\begin{equation}
+  H_{care}(u) = [1-\Mf(u,r,\,\Fo,\Fi)]
+  \ff_n^e(\Fo_{t},\Fi_{t}, e, a+1, r, t, care),
+\end{equation}
+where $r_{care}$ is given by equation (\ref{eq:rcare}). The maximum
+payoff is given by
+\begin{equation}
+  H_{care}^* = \max_{u_{crit}   \le u \le 1}H_{care}(u) 
+\end{equation}
+where $u_{crit}(e,t) \le 1$. If $u_{crit}>1$ we set $H_{care}^* =
+0$.
+
+The maximum payoff for a non-moulting bird
+$^{0}\ff_n(\Fo,\Fi,e,a,r,t)$ is then given by
+\begin{equation}
+  \begin{array}{lr}
+    ^{0}\ff_n(\Fo,\Fi, e, 0, r, t) = 0 & \mbox{for $r=0$}\\
+  \end{array}
+\end{equation}
+\begin{equation}
+  \begin{array}{lr}
+    ^{0}\ff_n(\Fo,\Fi, e, a, r, t) = \max(H_{subsist}^*, H_{start}^*)
+    & (r > 0).
+  \end{array}
+\end{equation}
+If the brood is deserted it dies and the bird is assumed to subsist
+during that week. Thus
+\begin{equation}
+  ^{0}\ff_n(\Fo,\Fi, e, a, r, t) = \max(H_{subsist}^*, H_{care}^*).
+\end{equation}
+Finally, let $r>0$ and $a=a_{max}$ at the beginning of week $t$. Then
+the bird is forced to abandon the brood immediately and subsist during the
+following week, so that  
+\begin{equation}
+  ^{0}\ff_n(\Fo,\Fi, e, a_{max}, r, t) = n_{brood}\ff_n(1, 1, 0, 0, 0.5,
+  t) + H_{subsist}^* ,
+\end{equation}
+since $n_{brood}$ young of value $\ff_n(1,1, 0, 0, 0.5, t)$ become
+independent at $t$.
+
+We now consider a bird starting to moult.  Because starting moult
+involves an instantaneous change in the feathers' state the payoff for
+a bird starting to moult its outer primaries is
+\begin{equation}
+  \label{eq:m_prim}
+  ^{\mbox{\small o}}H = \,^{0}\ff_n(-\,_{\mbox{\small
+  o}}m_{length},\Fi,e,a,r,t).
+\end{equation}
+The payoff for the bird starting to moult its inner primaries,
+$^{\mbox{\small i}}H$, is similarly defined.  The payoff for starting
+to moult both types of feathers is
+\begin{equation}
+  \label{eq:m_both}
+  ^{\mbox{\small o,i}}H = \,^{0}\ff_n(-\,_{\mbox{\small o}}m_{length},
+  -\,_{\mbox{\small i}}m_{length},e,a,r,t).
+\end{equation}
+
+The maximum payoff of a bird in state $(\Fo,\Fi,e,a,r)$
+at the beginning of week $t$ is
+\begin{equation}
+  \label{eq:payoff}
+  \ff_n(\Fo,\Fi,e,a,r,t) = max\left(H,\,^{\mbox{\small
+  o}}H,\,^{\mbox{\small i}}H,\,
+  ^{\mbox{\small o,i}}H\right),
+\end{equation}
+where $H = \,^{0}\ff_n(\Fo,\Fi,e,a,r,t)$.
+
+
+To compute $\ff_n$ as well as the optimal decisions for all states,
+weeks and $n$ we need the terminal condition:
+\begin{equation}
+\begin{array}{cc}
+\ff_0(\Fo,\Fi, e, a, r, 52) = 1 & \mbox{for $r>0$},
+\end{array}
+\end{equation}
+and the wrap-around condition:
+\begin{equation}
+\ff_n(\Fo,\Fi, e, a, r, 52) = \Hat{\ff}_{n-1}(\Fo,\Fi, e, a, r, 0).
+\end{equation}
+Here $\Hat{\ff}_{n-1}(\Fo,\Fi,e,a,r,0)$ is a renormalisation of
+$\ff_{n-1}(\Fo,\Fi, e,a,r,0)$ so that 
+\begin{equation}
+  \label{eq:renorm}
+  \max[\Hat{\ff}_{n-1}(\Fo,\Fi, e, a, r,0)] = 1
+\end{equation}
+(maximisation runs over all states).  Computations are stopped when
+\begin{equation}
+\sum \left |\Hat{\ff}_{n+1}(\Fo,\Fi,e,a,r,0) -
+\Hat{\ff}_n(\Fo,\Fi,e,a,r,0) \right | < 0.001 
+\end{equation}
+i.e.\ when the optimal annual routine settles down (summation runs
+over all states). All computations were run using a 13 by (11+6) by
+(11+6) grid for the reserves and the qualities of feathers,
+respectively (the first part of the sums is the grid for the unmoulted
+feathers, while the second one is for the moulted feathers).
+
+\newpage 
+
+\bibliography{/home/mazb/lib/bib_files/cikkek}
+
+
+
+
+
+
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
